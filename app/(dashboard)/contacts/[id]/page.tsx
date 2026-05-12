@@ -4,7 +4,7 @@ import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { authMessage } from "@/lib/auth-messages";
-import { contactDisplayName, getContact, softDeleteContact, updateContact } from "@/lib/contacts";
+import { contactDisplayName, getContact, listContactTypes, softDeleteContact, updateContact } from "@/lib/contacts";
 
 export default async function ContactDetailPage({
   params,
@@ -16,6 +16,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
   const { error, saved } = await searchParams;
   const contact = await getContact(id);
+  const contactTypes = await listContactTypes();
 
   if (!contact) {
     notFound();
@@ -48,6 +49,19 @@ export default async function ContactDetailPage({
           ) : null}
           <form action={updateAction} className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Salutation</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.salutation ?? ""} name="salutation" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Contact type</span>
+              <select className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.contact_type_id ?? ""} name="contact_type_id">
+                <option value="">None</option>
+                {contactTypes.map((type) => (
+                  <option key={type.id} value={type.id}>{type.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
               <span>First name</span>
               <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.first_name ?? ""} name="first_name" />
             </label>
@@ -62,6 +76,18 @@ export default async function ContactDetailPage({
             <label className="space-y-2 text-sm font-medium text-ink">
               <span>Phone</span>
               <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.phone ?? ""} name="phone" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Alternate email</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.alternate_email ?? ""} name="alternate_email" type="email" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Alternate phone</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.alternate_phone ?? ""} name="alternate_phone" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink md:col-span-2">
+              <span>Organization / account</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.organization_name ?? ""} name="organization_name" />
             </label>
             <label className="space-y-2 text-sm font-medium text-ink">
               <span>Source</span>
@@ -79,6 +105,30 @@ export default async function ContactDetailPage({
                 <option value="male">Male</option>
                 <option value="other">Other</option>
               </select>
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink md:col-span-2">
+              <span>Address line 1</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.address_line1 ?? ""} name="address_line1" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink md:col-span-2">
+              <span>Address line 2</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.address_line2 ?? ""} name="address_line2" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>City</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.city ?? ""} name="city" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>State / province</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.state_province ?? ""} name="state_province" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Postal code</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.postal_code ?? ""} name="postal_code" />
+            </label>
+            <label className="space-y-2 text-sm font-medium text-ink">
+              <span>Country</span>
+              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.country ?? ""} name="country" />
             </label>
             <div className="flex items-end gap-2">
               <Button type="submit">Save changes</Button>

@@ -18,6 +18,9 @@ export default async function ContactsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
+            <Button href="/contacts/types" variant="secondary">
+              Types
+            </Button>
             <Button href="/contacts/new">
               <Plus className="h-4 w-4" />
               Contact

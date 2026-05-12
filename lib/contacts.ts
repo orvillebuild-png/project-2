@@ -5,6 +5,7 @@ import { createClientForServer } from "@/lib/supabase";
 
 export type ContactListItem = {
   id: string;
+  salutation?: string | null;
   first_name: string | null;
   last_name: string | null;
   email: string;
@@ -12,8 +13,25 @@ export type ContactListItem = {
   sex?: string | null;
   age?: number | null;
   source: string | null;
+  organization_name?: string | null;
+  contact_type_id?: string | null;
+  alternate_email?: string | null;
+  alternate_phone?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
   email_status: string;
   created_at: string;
+  contact_types?: ContactType | null;
+};
+
+export type ContactType = {
+  id: string;
+  name: string;
+  color: string | null;
 };
 
 function formValue(formData: FormData, key: string) {
@@ -36,7 +54,7 @@ export async function listContacts() {
   const supabase = await createClientForServer();
   const { data, error } = await supabase
     .from("contacts")
-    .select("id, first_name, last_name, email, phone, source, email_status, created_at")
+    .select("id, salutation, first_name, last_name, email, phone, source, organization_name, contact_type_id, email_status, created_at, contact_types(id, name, color)")
     .eq("org_id", org.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -46,7 +64,95 @@ export async function listContacts() {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as ContactListItem[];
+  return (data ?? []).map((contact) => ({
+    ...contact,
+    contact_types: Array.isArray(contact.contact_types)
+      ? contact.contact_types[0] ?? null
+      : contact.contact_types ?? null
+  })) as ContactListItem[];
+}
+
+export async function listContactTypes() {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contact_types")
+    .select("id, name, color")
+    .eq("org_id", org.id)
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as ContactType[];
+}
+
+export async function createContactType(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const name = formValue(formData, "name");
+  const color = nullableFormValue(formData, "color") ?? "#39705f";
+
+  if (!name) {
+    redirect("/contacts/types?error=missing_fields");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase.from("contact_types").insert({
+    org_id: org.id,
+    name,
+    color
+  });
+
+  if (error) {
+    redirect(`/contacts/types?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/new");
+  revalidatePath("/contacts/types");
+  redirect("/contacts/types");
+}
+
+export async function deleteContactType(typeId: string) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("contact_types")
+    .delete()
+    .eq("org_id", org.id)
+    .eq("id", typeId);
+
+  if (error) {
+    redirect(`/contacts/types?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/new");
+  revalidatePath("/contacts/types");
+  redirect("/contacts/types");
 }
 
 export async function createContact(formData: FormData) {
@@ -63,7 +169,18 @@ export async function createContact(formData: FormData) {
   const lastName = nullableFormValue(formData, "last_name");
   const email = formValue(formData, "email").toLowerCase();
   const phone = nullableFormValue(formData, "phone");
+  const alternateEmail = nullableFormValue(formData, "alternate_email");
+  const alternatePhone = nullableFormValue(formData, "alternate_phone");
   const source = nullableFormValue(formData, "source");
+  const salutation = nullableFormValue(formData, "salutation");
+  const organizationName = nullableFormValue(formData, "organization_name");
+  const contactTypeId = nullableFormValue(formData, "contact_type_id");
+  const addressLine1 = nullableFormValue(formData, "address_line1");
+  const addressLine2 = nullableFormValue(formData, "address_line2");
+  const city = nullableFormValue(formData, "city");
+  const stateProvince = nullableFormValue(formData, "state_province");
+  const postalCode = nullableFormValue(formData, "postal_code");
+  const country = nullableFormValue(formData, "country");
   const sex = nullableFormValue(formData, "sex");
   const ageValue = nullableFormValue(formData, "age");
   const age = ageValue ? Number(ageValue) : null;
@@ -79,7 +196,18 @@ export async function createContact(formData: FormData) {
     last_name: lastName,
     email,
     phone,
+    alternate_email: alternateEmail,
+    alternate_phone: alternatePhone,
     source,
+    salutation,
+    organization_name: organizationName,
+    contact_type_id: contactTypeId,
+    address_line1: addressLine1,
+    address_line2: addressLine2,
+    city,
+    state_province: stateProvince,
+    postal_code: postalCode,
+    country,
     sex,
     age: Number.isFinite(age) ? age : null,
     email_status: "pending",
@@ -105,7 +233,7 @@ export async function getContact(contactId: string) {
   const supabase = await createClientForServer();
   const { data, error } = await supabase
     .from("contacts")
-    .select("id, first_name, last_name, email, phone, sex, age, source, email_status, created_at")
+    .select("id, salutation, first_name, last_name, email, phone, alternate_email, alternate_phone, sex, age, source, organization_name, contact_type_id, address_line1, address_line2, city, state_province, postal_code, country, email_status, created_at, contact_types(id, name, color)")
     .eq("org_id", org.id)
     .eq("id", contactId)
     .is("deleted_at", null)
@@ -115,7 +243,16 @@ export async function getContact(contactId: string) {
     throw new Error(error.message);
   }
 
-  return data as ContactListItem | null;
+  if (!data) {
+    return null;
+  }
+
+  return {
+    ...data,
+    contact_types: Array.isArray(data.contact_types)
+      ? data.contact_types[0] ?? null
+      : data.contact_types ?? null
+  } as ContactListItem;
 }
 
 export async function updateContact(contactId: string, formData: FormData) {
@@ -132,7 +269,18 @@ export async function updateContact(contactId: string, formData: FormData) {
   const lastName = nullableFormValue(formData, "last_name");
   const email = formValue(formData, "email").toLowerCase();
   const phone = nullableFormValue(formData, "phone");
+  const alternateEmail = nullableFormValue(formData, "alternate_email");
+  const alternatePhone = nullableFormValue(formData, "alternate_phone");
   const source = nullableFormValue(formData, "source");
+  const salutation = nullableFormValue(formData, "salutation");
+  const organizationName = nullableFormValue(formData, "organization_name");
+  const contactTypeId = nullableFormValue(formData, "contact_type_id");
+  const addressLine1 = nullableFormValue(formData, "address_line1");
+  const addressLine2 = nullableFormValue(formData, "address_line2");
+  const city = nullableFormValue(formData, "city");
+  const stateProvince = nullableFormValue(formData, "state_province");
+  const postalCode = nullableFormValue(formData, "postal_code");
+  const country = nullableFormValue(formData, "country");
   const sex = nullableFormValue(formData, "sex");
   const ageValue = nullableFormValue(formData, "age");
   const age = ageValue ? Number(ageValue) : null;
@@ -149,7 +297,18 @@ export async function updateContact(contactId: string, formData: FormData) {
       last_name: lastName,
       email,
       phone,
+      alternate_email: alternateEmail,
+      alternate_phone: alternatePhone,
       source,
+      salutation,
+      organization_name: organizationName,
+      contact_type_id: contactTypeId,
+      address_line1: addressLine1,
+      address_line2: addressLine2,
+      city,
+      state_province: stateProvince,
+      postal_code: postalCode,
+      country,
       sex,
       age: Number.isFinite(age) ? age : null
     })
