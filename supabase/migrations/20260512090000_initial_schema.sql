@@ -19,7 +19,7 @@ create table public.orgs (
 );
 
 create table public.users (
-  id uuid primary key,
+  id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   name text,
   created_at timestamptz not null default now()
@@ -224,3 +224,267 @@ alter table public.rsvp_responses enable row level security;
 alter table public.email_validations enable row level security;
 alter table public.usage_events enable row level security;
 alter table public.audit_log enable row level security;
+
+create or replace function public.current_org_id()
+returns uuid
+language sql
+stable
+as $$
+  select nullif(auth.jwt() ->> 'org_id', '')::uuid
+$$;
+
+create or replace function public.current_org_role()
+returns text
+language sql
+stable
+as $$
+  select nullif(auth.jwt() ->> 'role', '')
+$$;
+
+create or replace function public.is_org_member(target_org_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.org_users
+    where org_users.org_id = target_org_id
+      and org_users.user_id = auth.uid()
+  )
+$$;
+
+create or replace function public.is_org_admin(target_org_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.org_users
+    where org_users.org_id = target_org_id
+      and org_users.user_id = auth.uid()
+      and org_users.role = 'admin'
+  )
+$$;
+
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.users (id, email, name)
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'name', new.email)
+  )
+  on conflict (id) do update
+    set email = excluded.email,
+        name = coalesce(excluded.name, public.users.name);
+
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_auth_user();
+
+create policy "users_can_read_self"
+  on public.users for select
+  using (id = auth.uid());
+
+create policy "users_can_update_self"
+  on public.users for update
+  using (id = auth.uid())
+  with check (id = auth.uid());
+
+create policy "orgs_visible_to_members"
+  on public.orgs for select
+  using (public.is_org_member(id));
+
+create policy "authenticated_users_can_create_orgs"
+  on public.orgs for insert
+  with check (auth.uid() is not null);
+
+create policy "org_admins_can_update_orgs"
+  on public.orgs for update
+  using (public.is_org_admin(id))
+  with check (public.is_org_admin(id));
+
+create policy "org_users_visible_to_members"
+  on public.org_users for select
+  using (public.is_org_member(org_id));
+
+create policy "org_users_insertable_by_authenticated_users"
+  on public.org_users for insert
+  with check (auth.uid() is not null);
+
+create policy "org_admins_can_update_org_users"
+  on public.org_users for update
+  using (public.is_org_admin(org_id))
+  with check (public.is_org_admin(org_id));
+
+create policy "org_admins_can_delete_org_users"
+  on public.org_users for delete
+  using (public.is_org_admin(org_id));
+
+create policy "contacts_org_members_select"
+  on public.contacts for select
+  using (public.is_org_member(org_id));
+
+create policy "contacts_org_members_insert"
+  on public.contacts for insert
+  with check (public.is_org_member(org_id));
+
+create policy "contacts_org_members_update"
+  on public.contacts for update
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "contacts_org_members_delete"
+  on public.contacts for delete
+  using (public.is_org_member(org_id));
+
+create policy "tags_org_members_all"
+  on public.tags for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "contact_tags_org_members_all"
+  on public.contact_tags for all
+  using (
+    exists (
+      select 1 from public.contacts
+      where contacts.id = contact_tags.contact_id
+        and public.is_org_member(contacts.org_id)
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.contacts
+      where contacts.id = contact_tags.contact_id
+        and public.is_org_member(contacts.org_id)
+    )
+  );
+
+create policy "locations_org_members_all"
+  on public.locations for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "events_org_members_all"
+  on public.events for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "attendance_org_members_all"
+  on public.attendance for all
+  using (
+    exists (
+      select 1 from public.events
+      where events.id = attendance.event_id
+        and public.is_org_member(events.org_id)
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.events
+      where events.id = attendance.event_id
+        and public.is_org_member(events.org_id)
+    )
+  );
+
+create policy "email_templates_org_members_all"
+  on public.email_templates for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "invitation_cards_org_members_all"
+  on public.invitation_cards for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "send_campaigns_org_members_all"
+  on public.send_campaigns for all
+  using (public.is_org_member(org_id))
+  with check (public.is_org_member(org_id));
+
+create policy "send_log_org_members_all"
+  on public.send_log for all
+  using (
+    exists (
+      select 1 from public.send_campaigns
+      where send_campaigns.id = send_log.campaign_id
+        and public.is_org_member(send_campaigns.org_id)
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.send_campaigns
+      where send_campaigns.id = send_log.campaign_id
+        and public.is_org_member(send_campaigns.org_id)
+    )
+  );
+
+create policy "rsvp_responses_org_members_all"
+  on public.rsvp_responses for all
+  using (
+    exists (
+      select 1 from public.events
+      where events.id = rsvp_responses.event_id
+        and public.is_org_member(events.org_id)
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.events
+      where events.id = rsvp_responses.event_id
+        and public.is_org_member(events.org_id)
+    )
+  );
+
+create policy "email_validations_org_members_all"
+  on public.email_validations for all
+  using (
+    exists (
+      select 1 from public.contacts
+      where contacts.id = email_validations.contact_id
+        and public.is_org_member(contacts.org_id)
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.contacts
+      where contacts.id = email_validations.contact_id
+        and public.is_org_member(contacts.org_id)
+    )
+  );
+
+create policy "usage_events_org_admins_select"
+  on public.usage_events for select
+  using (public.is_org_admin(org_id));
+
+create policy "usage_events_org_members_insert"
+  on public.usage_events for insert
+  with check (public.is_org_member(org_id));
+
+create policy "usage_events_org_admins_update"
+  on public.usage_events for update
+  using (public.is_org_admin(org_id))
+  with check (public.is_org_admin(org_id));
+
+create policy "audit_log_org_members_select"
+  on public.audit_log for select
+  using (public.is_org_member(org_id));
+
+create policy "audit_log_org_members_insert"
+  on public.audit_log for insert
+  with check (public.is_org_member(org_id));
