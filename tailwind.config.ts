@@ -11,7 +11,7 @@ const config: Config = {
       colors: {
         ink: "#1f2933",
         muted: "#667085",
-        line: "#e6e8ec",
+        line: "#d8dde3",
         field: "#f8faf9",
         moss: "#39705f",
         leaf: "#6f9f77",

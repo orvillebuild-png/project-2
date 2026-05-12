@@ -1,13 +1,23 @@
 import { Plus, Upload } from "lucide-react";
+import { ContactFilters } from "@/components/contacts/ContactFilters";
 import { ContactTable } from "@/components/contacts/ContactTable";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { listContacts } from "@/lib/contacts";
+import { listContacts, listContactTypes, listTags } from "@/lib/contacts";
 
-export default async function ContactsPage() {
-  const contacts = await listContacts();
+export default async function ContactsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ tag?: string; type?: string; search?: string }>;
+}) {
+  const filters = await searchParams;
+  const [contacts, contactTypes, tags] = await Promise.all([
+    listContacts(filters),
+    listContactTypes(),
+    listTags()
+  ]);
 
   return (
     <>
@@ -18,8 +28,8 @@ export default async function ContactsPage() {
               <Upload className="h-4 w-4" />
               Import
             </Button>
-            <Button href="/contacts/types" variant="secondary">
-              Types
+            <Button href="/contacts/tags" variant="secondary">
+              Tags
             </Button>
             <Button href="/contacts/new">
               <Plus className="h-4 w-4" />
@@ -33,6 +43,15 @@ export default async function ContactsPage() {
       />
       <Card>
         <CardHeader
+          action={
+            <ContactFilters
+              search={filters.search}
+              selectedTag={filters.tag}
+              selectedType={filters.type}
+              tags={tags}
+              types={contactTypes}
+            />
+          }
           description={`${contacts.length} contact${contacts.length === 1 ? "" : "s"} in the current workspace`}
           title="Contact list"
         />

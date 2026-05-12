@@ -1,5 +1,4 @@
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { ContactListItem } from "@/lib/contacts";
 import { contactDisplayName } from "@/lib/contacts";
@@ -11,10 +10,10 @@ export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
         <thead className="bg-field text-xs font-bold uppercase tracking-[0.12em] text-muted">
           <tr>
             <th className="px-4 py-3">Name</th>
-            <th className="px-4 py-3">Type</th>
             <th className="px-4 py-3">Organization</th>
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Tags</th>
             <th className="px-4 py-3">Source</th>
             <th className="px-4 py-3">Added</th>
           </tr>
@@ -23,13 +22,15 @@ export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
           {contacts.map((contact) => (
             <tr className="hover:bg-field/70" key={contact.id}>
               <td className="px-4 py-3 font-semibold text-ink">{contactDisplayName(contact)}</td>
-              <td className="px-4 py-3">
-                {contact.contact_types ? <Badge tone="green">{contact.contact_types.name}</Badge> : <span className="text-muted">None</span>}
-              </td>
               <td className="px-4 py-3 text-muted">{contact.organization_name ?? "Individual"}</td>
               <td className="px-4 py-3 text-muted">{contact.email}</td>
               <td className="px-4 py-3">
                 <EmailStatusBadge status={contact.email_status} />
+              </td>
+              <td className="px-4 py-3 text-muted">
+                {contact.contact_tags && contact.contact_tags.length > 0
+                  ? contact.contact_tags.map((tag) => tag.name).join(", ")
+                  : "None"}
               </td>
               <td className="px-4 py-3 text-muted">{contact.source ?? "Manual"}</td>
               <td className="px-4 py-3 text-muted">

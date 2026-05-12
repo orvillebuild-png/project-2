@@ -26,12 +26,25 @@ export type ContactListItem = {
   email_status: string;
   created_at: string;
   contact_types?: ContactType | null;
+  contact_tags?: ContactTag[];
 };
 
 export type ContactType = {
   id: string;
   name: string;
   color: string | null;
+};
+
+export type ContactTag = {
+  id: string;
+  name: string;
+  color: string | null;
+};
+
+export type ContactFilters = {
+  tag?: string;
+  type?: string;
+  search?: string;
 };
 
 function formValue(formData: FormData, key: string) {
@@ -43,7 +56,7 @@ function nullableFormValue(formData: FormData, key: string) {
   return value || null;
 }
 
-export async function listContacts() {
+export async function listContacts(filters: ContactFilters = {}) {
   const membership = await getCurrentOrg();
   const org = membership?.orgs;
 
@@ -52,13 +65,46 @@ export async function listContacts() {
   }
 
   const supabase = await createClientForServer();
-  const { data, error } = await supabase
+  let taggedContactIds: string[] | null = null;
+
+  if (filters.tag) {
+    const { data: taggedRows, error: tagError } = await supabase
+      .from("contact_tags")
+      .select("contact_id")
+      .eq("tag_id", filters.tag);
+
+    if (tagError) {
+      throw new Error(tagError.message);
+    }
+
+    taggedContactIds = (taggedRows ?? []).map((row) => row.contact_id as string);
+
+    if (taggedContactIds.length === 0) {
+      return [];
+    }
+  }
+
+  let query = supabase
     .from("contacts")
-    .select("id, salutation, first_name, last_name, email, phone, source, organization_name, contact_type_id, email_status, created_at, contact_types(id, name, color)")
+    .select("id, salutation, first_name, last_name, email, phone, source, organization_name, contact_type_id, email_status, created_at, contact_types(id, name, color), contact_tags(tags(id, name, color))")
     .eq("org_id", org.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  if (filters.type) {
+    query = query.eq("contact_type_id", filters.type);
+  }
+
+  if (filters.search) {
+    query = query.or(`first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,organization_name.ilike.%${filters.search}%`);
+  }
+
+  if (taggedContactIds) {
+    query = query.in("id", taggedContactIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);
@@ -68,7 +114,10 @@ export async function listContacts() {
     ...contact,
     contact_types: Array.isArray(contact.contact_types)
       ? contact.contact_types[0] ?? null
-      : contact.contact_types ?? null
+      : contact.contact_types ?? null,
+    contact_tags: (contact.contact_tags ?? [])
+      .map((row: { tags?: ContactTag[] | ContactTag | null }) => Array.isArray(row.tags) ? row.tags[0] : row.tags)
+      .filter(Boolean)
   })) as ContactListItem[];
 }
 
@@ -92,6 +141,28 @@ export async function listContactTypes() {
   }
 
   return (data ?? []) as ContactType[];
+}
+
+export async function listTags() {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("tags")
+    .select("id, name, color")
+    .eq("org_id", org.id)
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as ContactTag[];
 }
 
 export async function createContactType(formData: FormData) {
@@ -126,6 +197,65 @@ export async function createContactType(formData: FormData) {
   revalidatePath("/contacts/new");
   revalidatePath("/contacts/types");
   redirect("/contacts/types");
+}
+
+export async function createTag(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const name = formValue(formData, "name");
+  const color = nullableFormValue(formData, "color") ?? "#39705f";
+
+  if (!name) {
+    redirect("/contacts/tags?error=missing_fields");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase.from("tags").insert({
+    org_id: org.id,
+    name,
+    color
+  });
+
+  if (error) {
+    redirect(`/contacts/tags?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/tags");
+  redirect("/contacts/tags");
+}
+
+export async function deleteTag(tagId: string) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("tags")
+    .delete()
+    .eq("org_id", org.id)
+    .eq("id", tagId);
+
+  if (error) {
+    redirect(`/contacts/tags?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/tags");
+  redirect("/contacts/tags");
 }
 
 export async function deleteContactType(typeId: string) {
@@ -171,7 +301,7 @@ export async function createContact(formData: FormData) {
   const phone = nullableFormValue(formData, "phone");
   const alternateEmail = nullableFormValue(formData, "alternate_email");
   const alternatePhone = nullableFormValue(formData, "alternate_phone");
-  const source = nullableFormValue(formData, "source");
+  const source = nullableFormValue(formData, "source") ?? "Manual Entry";
   const salutation = nullableFormValue(formData, "salutation");
   const organizationName = nullableFormValue(formData, "organization_name");
   const contactTypeId = nullableFormValue(formData, "contact_type_id");
@@ -233,7 +363,7 @@ export async function getContact(contactId: string) {
   const supabase = await createClientForServer();
   const { data, error } = await supabase
     .from("contacts")
-    .select("id, salutation, first_name, last_name, email, phone, alternate_email, alternate_phone, sex, age, source, organization_name, contact_type_id, address_line1, address_line2, city, state_province, postal_code, country, email_status, created_at, contact_types(id, name, color)")
+    .select("id, salutation, first_name, last_name, email, phone, alternate_email, alternate_phone, sex, age, source, organization_name, contact_type_id, address_line1, address_line2, city, state_province, postal_code, country, email_status, created_at, contact_types(id, name, color), contact_tags(tags(id, name, color))")
     .eq("org_id", org.id)
     .eq("id", contactId)
     .is("deleted_at", null)
@@ -251,7 +381,10 @@ export async function getContact(contactId: string) {
     ...data,
     contact_types: Array.isArray(data.contact_types)
       ? data.contact_types[0] ?? null
-      : data.contact_types ?? null
+      : data.contact_types ?? null,
+    contact_tags: (data.contact_tags ?? [])
+      .map((row: { tags?: ContactTag[] | ContactTag | null }) => Array.isArray(row.tags) ? row.tags[0] : row.tags)
+      .filter(Boolean)
   } as ContactListItem;
 }
 
@@ -271,7 +404,7 @@ export async function updateContact(contactId: string, formData: FormData) {
   const phone = nullableFormValue(formData, "phone");
   const alternateEmail = nullableFormValue(formData, "alternate_email");
   const alternatePhone = nullableFormValue(formData, "alternate_phone");
-  const source = nullableFormValue(formData, "source");
+  const source = nullableFormValue(formData, "source") ?? "Manual Entry";
   const salutation = nullableFormValue(formData, "salutation");
   const organizationName = nullableFormValue(formData, "organization_name");
   const contactTypeId = nullableFormValue(formData, "contact_type_id");
@@ -317,6 +450,29 @@ export async function updateContact(contactId: string, formData: FormData) {
 
   if (error) {
     redirect(`/contacts/${contactId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  const tagIds = formData.getAll("tag_ids").map((value) => String(value));
+  const { error: deleteTagsError } = await supabase
+    .from("contact_tags")
+    .delete()
+    .eq("contact_id", contactId);
+
+  if (deleteTagsError) {
+    redirect(`/contacts/${contactId}?error=${encodeURIComponent(deleteTagsError.message)}`);
+  }
+
+  if (tagIds.length > 0) {
+    const { error: insertTagsError } = await supabase.from("contact_tags").insert(
+      tagIds.map((tagId) => ({
+        contact_id: contactId,
+        tag_id: tagId
+      }))
+    );
+
+    if (insertTagsError) {
+      redirect(`/contacts/${contactId}?error=${encodeURIComponent(insertTagsError.message)}`);
+    }
   }
 
   revalidatePath("/contacts");

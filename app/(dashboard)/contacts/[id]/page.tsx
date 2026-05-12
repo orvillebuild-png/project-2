@@ -4,7 +4,7 @@ import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { authMessage } from "@/lib/auth-messages";
-import { contactDisplayName, getContact, listContactTypes, softDeleteContact, updateContact } from "@/lib/contacts";
+import { contactDisplayName, getContact, listContactTypes, listTags, softDeleteContact, updateContact } from "@/lib/contacts";
 
 export default async function ContactDetailPage({
   params,
@@ -16,11 +16,13 @@ export default async function ContactDetailPage({
   const { id } = await params;
   const { error, saved } = await searchParams;
   const contact = await getContact(id);
-  const contactTypes = await listContactTypes();
 
   if (!contact) {
     notFound();
   }
+
+  const [contactTypes, tags] = await Promise.all([listContactTypes(), listTags()]);
+  const activeTagIds = new Set((contact.contact_tags ?? []).map((tag) => tag.id));
 
   const updateAction = updateContact.bind(null, id);
   const deleteAction = softDeleteContact.bind(null, id);
@@ -90,10 +92,6 @@ export default async function ContactDetailPage({
               <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.organization_name ?? ""} name="organization_name" />
             </label>
             <label className="space-y-2 text-sm font-medium text-ink">
-              <span>Source</span>
-              <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.source ?? ""} name="source" />
-            </label>
-            <label className="space-y-2 text-sm font-medium text-ink">
               <span>Age</span>
               <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.age ?? ""} min="0" name="age" type="number" />
             </label>
@@ -130,6 +128,26 @@ export default async function ContactDetailPage({
               <span>Country</span>
               <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={contact.country ?? ""} name="country" />
             </label>
+            <label className="space-y-2 text-sm font-medium text-ink md:col-span-2">
+              <span>Source</span>
+              <input name="source" type="hidden" value={contact.source ?? "Manual Entry"} />
+              <input className="h-11 w-full rounded-md border border-line px-3 outline-none" disabled value={contact.source ?? "Manual Entry"} />
+            </label>
+            <fieldset className="space-y-3 rounded-lg border border-line bg-field p-4 md:col-span-2">
+              <legend className="px-1 text-sm font-semibold text-ink">Tags</legend>
+              {tags.length > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {tags.map((tag) => (
+                    <label className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" key={tag.id}>
+                      <input className="h-4 w-4 accent-moss" defaultChecked={activeTagIds.has(tag.id)} name="tag_ids" type="checkbox" value={tag.id} />
+                      {tag.name}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">No tags yet. Add tags from the contact list.</p>
+              )}
+            </fieldset>
             <div className="flex items-end gap-2">
               <Button type="submit">Save changes</Button>
               <Button href="/contacts" variant="secondary">Cancel</Button>

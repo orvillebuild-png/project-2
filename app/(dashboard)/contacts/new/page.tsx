@@ -69,10 +69,6 @@ export default async function NewContactPage({
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="organization_name" placeholder="Partner foundation, company, household, or account" />
           </label>
           <label className="space-y-2 text-sm font-medium text-ink">
-            <span>Source</span>
-            <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="source" placeholder="Manual entry" />
-          </label>
-          <label className="space-y-2 text-sm font-medium text-ink">
             <span>Age</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" min="0" name="age" placeholder="32" type="number" />
           </label>
@@ -108,6 +104,11 @@ export default async function NewContactPage({
           <label className="space-y-2 text-sm font-medium text-ink">
             <span>Country</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="country" />
+          </label>
+          <label className="space-y-2 text-sm font-medium text-ink md:col-span-2">
+            <span>Source</span>
+            <input name="source" type="hidden" value="Manual Entry" />
+            <input className="h-11 w-full rounded-md border border-line px-3 outline-none" disabled value="Manual Entry" />
           </label>
           <div className="flex items-end gap-2">
             <Button type="submit">Save contact</Button>
