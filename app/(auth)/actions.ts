@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { authErrorCode } from "@/lib/auth-messages";
 import { slugify } from "@/lib/orgs";
@@ -41,24 +42,24 @@ export async function signup(formData: FormData) {
     redirect(`/signup/check-email?email=${encodeURIComponent(email)}`);
   }
 
-  const { data: org, error: orgError } = await supabase
+  const orgId = crypto.randomUUID();
+  const { error: orgError } = await supabase
     .from("orgs")
     .insert({
+      id: orgId,
       name: orgName,
       slug: orgSlug,
       sender_name: orgName,
       reply_to_email: email,
       primary_color: "#39705f"
-    })
-    .select("id")
-    .single();
+    });
 
-  if (orgError || !org) {
-    redirect(`/signup?error=${authErrorCode(orgError?.message ?? "org_failed")}`);
+  if (orgError) {
+    redirect(`/signup?error=${authErrorCode(orgError.message)}`);
   }
 
   const { error: membershipError } = await supabase.from("org_users").insert({
-    org_id: org.id,
+    org_id: orgId,
     user_id: authData.user.id,
     role: "admin"
   });

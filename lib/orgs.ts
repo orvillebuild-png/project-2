@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import crypto from "node:crypto";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
@@ -28,24 +29,24 @@ export async function createWorkspace(formData: FormData) {
   }
 
   const supabase = await createClientForServer();
-  const { data: org, error: orgError } = await supabase
+  const orgId = crypto.randomUUID();
+  const { error: orgError } = await supabase
     .from("orgs")
     .insert({
+      id: orgId,
       name: orgName,
       slug: orgSlug,
       sender_name: orgName,
       reply_to_email: user.email,
       primary_color: "#39705f"
-    })
-    .select("id")
-    .single();
+    });
 
-  if (orgError || !org) {
-    redirect(`/onboarding/create-org?error=${encodeURIComponent(orgError?.message ?? "org_failed")}`);
+  if (orgError) {
+    redirect(`/onboarding/create-org?error=${encodeURIComponent(orgError.message)}`);
   }
 
   const { error: membershipError } = await supabase.from("org_users").insert({
-    org_id: org.id,
+    org_id: orgId,
     user_id: user.id,
     role: "admin"
   });
