@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import Papa from "papaparse";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 
@@ -529,27 +530,41 @@ export async function importMappedContacts(formData: FormData) {
     redirect("/onboarding/create-org");
   }
 
-  const source = formValue(formData, "csv_filename");
+  const file = formData.get("file");
   const rawMapping = formValue(formData, "csv_mapping");
-  const rawRows = formValue(formData, "csv_rows");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/contacts/import?error=invalid_payload");
+  }
+
+  const source = file.name;
 
   if (!source.toLowerCase().endsWith(".csv")) {
     redirect("/contacts/import?error=csv_only");
   }
 
   let mapping: Record<string, string>;
-  let rows: Record<string, string>[];
 
   try {
     mapping = JSON.parse(rawMapping) as Record<string, string>;
-    rows = JSON.parse(rawRows) as Record<string, string>[];
   } catch {
     redirect("/contacts/import?error=invalid_payload");
   }
 
-  if (!mapping.email || !Array.isArray(rows)) {
+  if (!mapping.email) {
     redirect("/contacts/import?error=mapping_required");
   }
+
+  const parsed = Papa.parse<Record<string, string>>(await file.text(), {
+    header: true,
+    skipEmptyLines: true
+  });
+
+  if (parsed.errors.length > 0) {
+    redirect(`/contacts/import?error=${encodeURIComponent(parsed.errors[0]?.message ?? "parse_failed")}`);
+  }
+
+  const rows = parsed.data;
 
   const supabase = await createClientForServer();
   const contactTypes = await listContactTypes();
@@ -575,10 +590,18 @@ export async function importMappedContacts(formData: FormData) {
 
   const existingEmails = new Set((existingRows ?? []).map((row) => String(row.email).toLowerCase()));
   const seenEmails = new Set<string>();
+  let duplicateRows = 0;
+  let blankEmailRows = 0;
   const contactsToInsert = rows.flatMap((row) => {
     const email = mappedValue(row, mapping, "email")?.toLowerCase();
 
-    if (!email || existingEmails.has(email) || seenEmails.has(email)) {
+    if (!email) {
+      blankEmailRows += 1;
+      return [];
+    }
+
+    if (existingEmails.has(email) || seenEmails.has(email)) {
+      duplicateRows += 1;
       return [];
     }
 
@@ -619,7 +642,7 @@ export async function importMappedContacts(formData: FormData) {
   }
 
   revalidatePath("/contacts");
-  redirect(`/contacts/import?imported=${contactsToInsert.length}&skipped=${emails.length - contactsToInsert.length}`);
+  redirect(`/contacts/import?imported=${contactsToInsert.length}&skipped=${rows.length - contactsToInsert.length}&duplicates=${duplicateRows}&blank=${blankEmailRows}`);
 }
 
 export function contactDisplayName(contact: Pick<ContactListItem, "first_name" | "last_name" | "email">) {

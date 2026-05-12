@@ -6,13 +6,14 @@ import { importMappedContacts } from "@/lib/contacts";
 export default async function ImportContactsPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string; imported?: string; skipped?: string }>;
+  searchParams: Promise<{ blank?: string; duplicates?: string; error?: string; imported?: string; skipped?: string }>;
 }) {
   const params = await searchParams;
   const errorMessages: Record<string, string> = {
     invalid_payload: "Upload and map a CSV file before importing.",
     csv_only: "Only .csv files are supported right now.",
     mapping_required: "Map the email column before importing.",
+    parse_failed: "The CSV could not be parsed.",
     no_email_rows: "No mapped rows with an email address were found."
   };
 
@@ -25,6 +26,8 @@ export default async function ImportContactsPage({
       />
       <Card className="max-w-3xl p-6">
         <CsvImportForm
+          blank={params.blank}
+          duplicates={params.duplicates}
           error={params.error ? errorMessages[params.error] ?? params.error : undefined}
           formAction={importMappedContacts}
           imported={params.imported}

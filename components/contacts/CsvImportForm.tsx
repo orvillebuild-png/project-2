@@ -50,17 +50,20 @@ function createDefaultMapping(headers: string[]) {
 }
 
 export function CsvImportForm({
+  blank,
+  duplicates,
   error,
   formAction,
   imported,
   skipped
 }: {
+  blank?: string;
+  duplicates?: string;
   error?: string;
   formAction: (formData: FormData) => void | Promise<void>;
   imported?: string;
   skipped?: string;
 }) {
-  const [filename, setFilename] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
@@ -74,11 +77,8 @@ export function CsvImportForm({
     setMapping({});
 
     if (!file) {
-      setFilename("");
       return;
     }
-
-    setFilename(file.name);
 
     if (!file.name.toLowerCase().endsWith(".csv")) {
       setParseError("Only .csv files are supported right now.");
@@ -127,7 +127,9 @@ export function CsvImportForm({
       ) : null}
       {imported ? (
         <div className="mx-auto mt-4 max-w-md rounded-md border border-moss/30 bg-moss/10 px-3 py-2 text-sm text-moss">
-          Imported {imported} contact{imported === "1" ? "" : "s"}. Skipped {skipped ?? "0"}.
+          Imported {imported} contact{imported === "1" ? "" : "s"}. Skipped {skipped ?? "0"}
+          {duplicates ? `, duplicates ${duplicates}` : ""}
+          {blank ? `, blank emails ${blank}` : ""}.
         </div>
       ) : null}
 
@@ -137,16 +139,16 @@ export function CsvImportForm({
           accept=".csv,text/csv"
           className="mt-2 block w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink file:mr-4 file:rounded-md file:border-0 file:bg-moss file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
           id="file"
+          name="file"
           onChange={(event) => handleFileChange(event.target.files?.[0])}
+          required
           type="file"
         />
       </div>
 
       {rows.length > 0 ? (
         <>
-          <input name="csv_filename" type="hidden" value={filename} />
           <input name="csv_mapping" type="hidden" value={JSON.stringify(mapping)} />
-          <input name="csv_rows" type="hidden" value={JSON.stringify(rows)} />
 
           <div className="mt-8 grid gap-3 md:grid-cols-2">
             {fields.map((field) => (
