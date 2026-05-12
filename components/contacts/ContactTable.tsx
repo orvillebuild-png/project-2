@@ -1,4 +1,5 @@
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
+import { Button } from "@/components/ui/Button";
 import type { ContactListItem } from "@/lib/contacts";
 import { contactDisplayName } from "@/lib/contacts";
 
@@ -30,6 +31,9 @@ export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
                   day: "numeric",
                   year: "numeric"
                 }).format(new Date(contact.created_at))}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Button href={`/contacts/${contact.id}`} variant="secondary">Open</Button>
               </td>
             </tr>
           ))}

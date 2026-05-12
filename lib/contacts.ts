@@ -9,6 +9,8 @@ export type ContactListItem = {
   last_name: string | null;
   email: string;
   phone: string | null;
+  sex?: string | null;
+  age?: number | null;
   source: string | null;
   email_status: string;
   created_at: string;
@@ -86,6 +88,104 @@ export async function createContact(formData: FormData) {
 
   if (error) {
     redirect(`/contacts/new?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  redirect("/contacts");
+}
+
+export async function getContact(contactId: string) {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("id, first_name, last_name, email, phone, sex, age, source, email_status, created_at")
+    .eq("org_id", org.id)
+    .eq("id", contactId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data as ContactListItem | null;
+}
+
+export async function updateContact(contactId: string, formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const firstName = nullableFormValue(formData, "first_name");
+  const lastName = nullableFormValue(formData, "last_name");
+  const email = formValue(formData, "email").toLowerCase();
+  const phone = nullableFormValue(formData, "phone");
+  const source = nullableFormValue(formData, "source");
+  const sex = nullableFormValue(formData, "sex");
+  const ageValue = nullableFormValue(formData, "age");
+  const age = ageValue ? Number(ageValue) : null;
+
+  if (!email) {
+    redirect(`/contacts/${contactId}?error=missing_email`);
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("contacts")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      source,
+      sex,
+      age: Number.isFinite(age) ? age : null
+    })
+    .eq("org_id", org.id)
+    .eq("id", contactId);
+
+  if (error) {
+    redirect(`/contacts/${contactId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath(`/contacts/${contactId}`);
+  redirect(`/contacts/${contactId}?saved=1`);
+}
+
+export async function softDeleteContact(contactId: string) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("contacts")
+    .update({
+      deleted_at: new Date().toISOString()
+    })
+    .eq("org_id", org.id)
+    .eq("id", contactId);
+
+  if (error) {
+    redirect(`/contacts/${contactId}?error=${encodeURIComponent(error.message)}`);
   }
 
   revalidatePath("/contacts");
