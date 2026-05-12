@@ -53,14 +53,12 @@ export function CsvImportForm({
   blank,
   duplicates,
   error,
-  formAction,
   imported,
   skipped
 }: {
   blank?: string;
   duplicates?: string;
   error?: string;
-  formAction: (formData: FormData) => void | Promise<void>;
   imported?: string;
   skipped?: string;
 }) {
@@ -106,7 +104,7 @@ export function CsvImportForm({
   }
 
   return (
-    <form action={formAction} className="rounded-lg border border-dashed border-line bg-field px-6 py-10" encType="multipart/form-data">
+    <form action="/contacts/import/submit" className="rounded-lg border border-dashed border-line bg-field px-6 py-10" encType="multipart/form-data" method="post">
       <div className="text-center">
         <Upload className="mx-auto h-8 w-8 text-moss" />
         <h2 className="mt-4 text-lg font-semibold text-ink">Upload CSV</h2>

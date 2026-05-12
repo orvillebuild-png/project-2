@@ -520,27 +520,25 @@ export async function softDeleteContact(contactId: string) {
   redirect("/contacts");
 }
 
-export async function importMappedContacts(formData: FormData) {
-  "use server";
-
+export async function importMappedContactsFromFormData(formData: FormData) {
   const membership = await getCurrentOrg();
   const org = membership?.orgs;
 
   if (!org) {
-    redirect("/onboarding/create-org");
+    return { error: "missing_org" };
   }
 
   const file = formData.get("file");
   const rawMapping = formValue(formData, "csv_mapping");
 
   if (!(file instanceof File) || file.size === 0) {
-    redirect("/contacts/import?error=invalid_payload");
+    return { error: "invalid_payload" };
   }
 
   const source = file.name;
 
   if (!source.toLowerCase().endsWith(".csv")) {
-    redirect("/contacts/import?error=csv_only");
+    return { error: "csv_only" };
   }
 
   let mapping: Record<string, string>;
@@ -548,11 +546,11 @@ export async function importMappedContacts(formData: FormData) {
   try {
     mapping = JSON.parse(rawMapping) as Record<string, string>;
   } catch {
-    redirect("/contacts/import?error=invalid_payload");
+    return { error: "invalid_payload" };
   }
 
   if (!mapping.email) {
-    redirect("/contacts/import?error=mapping_required");
+    return { error: "mapping_required" };
   }
 
   const parsed = Papa.parse<Record<string, string>>(await file.text(), {
@@ -561,7 +559,7 @@ export async function importMappedContacts(formData: FormData) {
   });
 
   if (parsed.errors.length > 0) {
-    redirect(`/contacts/import?error=${encodeURIComponent(parsed.errors[0]?.message ?? "parse_failed")}`);
+    return { error: parsed.errors[0]?.message ?? "parse_failed" };
   }
 
   const rows = parsed.data;
@@ -574,7 +572,7 @@ export async function importMappedContacts(formData: FormData) {
     .filter((email): email is string => Boolean(email));
 
   if (emails.length === 0) {
-    redirect("/contacts/import?error=no_email_rows");
+    return { error: "no_email_rows" };
   }
 
   const { data: existingRows, error: existingError } = await supabase
@@ -585,7 +583,7 @@ export async function importMappedContacts(formData: FormData) {
     .in("email", emails);
 
   if (existingError) {
-    redirect(`/contacts/import?error=${encodeURIComponent(existingError.message)}`);
+    return { error: existingError.message };
   }
 
   const existingEmails = new Set((existingRows ?? []).map((row) => String(row.email).toLowerCase()));
@@ -637,12 +635,17 @@ export async function importMappedContacts(formData: FormData) {
     const { error } = await supabase.from("contacts").insert(contactsToInsert);
 
     if (error) {
-      redirect(`/contacts/import?error=${encodeURIComponent(error.message)}`);
+      return { error: error.message };
     }
   }
 
   revalidatePath("/contacts");
-  redirect(`/contacts/import?imported=${contactsToInsert.length}&skipped=${rows.length - contactsToInsert.length}&duplicates=${duplicateRows}&blank=${blankEmailRows}`);
+  return {
+    blank: blankEmailRows,
+    duplicates: duplicateRows,
+    imported: contactsToInsert.length,
+    skipped: rows.length - contactsToInsert.length
+  };
 }
 
 export function contactDisplayName(contact: Pick<ContactListItem, "first_name" | "last_name" | "email">) {

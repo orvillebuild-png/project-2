@@ -1,7 +1,6 @@
 import { CsvImportForm } from "@/components/contacts/CsvImportForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { importMappedContacts } from "@/lib/contacts";
 
 export default async function ImportContactsPage({
   searchParams
@@ -29,7 +28,6 @@ export default async function ImportContactsPage({
           blank={params.blank}
           duplicates={params.duplicates}
           error={params.error ? errorMessages[params.error] ?? params.error : undefined}
-          formAction={importMappedContacts}
           imported={params.imported}
           skipped={params.skipped}
         />
