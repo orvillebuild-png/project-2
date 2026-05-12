@@ -1,10 +1,14 @@
 import { Plus, Upload } from "lucide-react";
+import { ContactTable } from "@/components/contacts/ContactTable";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { listContacts } from "@/lib/contacts";
 
-export default function ContactsPage() {
+export default async function ContactsPage() {
+  const contacts = await listContacts();
+
   return (
     <>
       <PageHeader
@@ -20,19 +24,26 @@ export default function ContactsPage() {
             </Button>
           </div>
         }
-        description="The CRM will support tags, URL-backed filters, CSV import/export, validation badges, and self-registration."
+        description="Manage people, relationship source, and email health before events and invitation campaigns are added."
         eyebrow="CRM"
         title="Contacts"
       />
       <Card>
-        <CardHeader description="Live contact data will appear after Supabase is connected." title="Contact list" />
+        <CardHeader
+          description={`${contacts.length} contact${contacts.length === 1 ? "" : "s"} in the current workspace`}
+          title="Contact list"
+        />
         <div className="p-5">
-          <EmptyState
-            actionLabel="Add contact"
-            description="Start with a single contact or import a CSV once the background import job is wired."
-            href="/contacts/new"
-            title="No contacts yet"
-          />
+          {contacts.length > 0 ? (
+            <ContactTable contacts={contacts} />
+          ) : (
+            <EmptyState
+              actionLabel="Add contact"
+              description="Start with a single contact. CSV import, tags, filters, and validation jobs come next in Phase 2."
+              href="/contacts/new"
+              title="No contacts yet"
+            />
+          )}
         </div>
       </Card>
     </>

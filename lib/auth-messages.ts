@@ -1,5 +1,6 @@
 const messages: Record<string, string> = {
   missing_fields: "Please complete all required fields.",
+  missing_email: "Please enter an email address.",
   signup_failed: "We could not create your account. Please try again.",
   org_failed: "Your account was created, but the workspace could not be set up. Please contact support before trying again.",
   email_not_confirmed: "Please verify your email before logging in.",
