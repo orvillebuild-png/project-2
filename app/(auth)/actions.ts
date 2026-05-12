@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { authErrorCode } from "@/lib/auth-messages";
 import { createClientForServer } from "@/lib/supabase";
 
 function formValue(formData: FormData, key: string) {
@@ -40,7 +41,7 @@ export async function signup(formData: FormData) {
   });
 
   if (signUpError || !authData.user) {
-    redirect(`/signup?error=${encodeURIComponent(signUpError?.message ?? "signup_failed")}`);
+    redirect(`/signup?error=${authErrorCode(signUpError?.message ?? "signup_failed")}`);
   }
 
   const { data: org, error: orgError } = await supabase
@@ -56,7 +57,7 @@ export async function signup(formData: FormData) {
     .single();
 
   if (orgError || !org) {
-    redirect(`/signup?error=${encodeURIComponent(orgError?.message ?? "org_failed")}`);
+    redirect(`/signup?error=${authErrorCode(orgError?.message ?? "org_failed")}`);
   }
 
   const { error: membershipError } = await supabase.from("org_users").insert({
@@ -66,11 +67,11 @@ export async function signup(formData: FormData) {
   });
 
   if (membershipError) {
-    redirect(`/signup?error=${encodeURIComponent(membershipError.message)}`);
+    redirect(`/signup?error=${authErrorCode(membershipError.message)}`);
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(`/signup/check-email?email=${encodeURIComponent(email)}`);
 }
 
 export async function login(formData: FormData) {
@@ -88,7 +89,9 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    const code = authErrorCode(error.message);
+    const emailQuery = code === "email_not_confirmed" ? `&email=${encodeURIComponent(email)}` : "";
+    redirect(`/login?error=${code}${emailQuery}`);
   }
 
   revalidatePath("/", "layout");
@@ -100,4 +103,24 @@ export async function logout() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");
+}
+
+export async function resendConfirmation(formData: FormData) {
+  const email = formValue(formData, "email");
+
+  if (!email) {
+    redirect("/login?error=missing_fields");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email
+  });
+
+  if (error) {
+    redirect(`/login?error=resend_failed&email=${encodeURIComponent(email)}`);
+  }
+
+  redirect(`/signup/check-email?email=${encodeURIComponent(email)}&status=confirmation_sent`);
 }
