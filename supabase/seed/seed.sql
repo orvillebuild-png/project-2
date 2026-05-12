@@ -1,0 +1,1 @@
+-- Local development seed data will be added after the first schema reset is verified.
