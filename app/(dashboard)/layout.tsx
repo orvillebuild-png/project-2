@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
   children
@@ -10,6 +11,10 @@ export default async function DashboardLayout({
   const user = await requireUser();
   const membership = await getCurrentOrg();
   const org = Array.isArray(membership?.orgs) ? membership?.orgs[0] : membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
 
   return (
     <div className="min-h-screen lg:flex">

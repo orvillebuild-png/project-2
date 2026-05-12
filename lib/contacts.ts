@@ -54,7 +54,7 @@ export async function createContact(formData: FormData) {
   const org = membership?.orgs;
 
   if (!org) {
-    redirect("/login");
+    redirect("/onboarding/create-org");
   }
 
   const firstName = nullableFormValue(formData, "first_name");

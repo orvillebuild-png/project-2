@@ -3,18 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { authErrorCode } from "@/lib/auth-messages";
+import { slugify } from "@/lib/orgs";
 import { createClientForServer } from "@/lib/supabase";
 
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
 }
 
 export async function signup(formData: FormData) {
@@ -42,6 +35,10 @@ export async function signup(formData: FormData) {
 
   if (signUpError || !authData.user) {
     redirect(`/signup?error=${authErrorCode(signUpError?.message ?? "signup_failed")}`);
+  }
+
+  if (!authData.session) {
+    redirect(`/signup/check-email?email=${encodeURIComponent(email)}`);
   }
 
   const { data: org, error: orgError } = await supabase
