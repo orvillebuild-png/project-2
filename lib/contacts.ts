@@ -1,6 +1,5 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import Papa from "papaparse";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 
@@ -57,23 +56,14 @@ function nullableFormValue(formData: FormData, key: string) {
   return value || null;
 }
 
-function normalizeCsvHeader(header: string) {
-  return header.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+function mappedValue(row: Record<string, string>, mapping: Record<string, string>, field: string) {
+  const header = mapping[field];
+  const value = header ? row[header]?.trim() : "";
+  return value || null;
 }
 
-function csvValue(row: Record<string, string>, keys: string[]) {
-  for (const key of keys) {
-    const value = row[key]?.trim();
-    if (value) {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-function csvNumber(row: Record<string, string>, keys: string[]) {
-  const value = csvValue(row, keys);
+function mappedNumber(row: Record<string, string>, mapping: Record<string, string>, field: string) {
+  const value = mappedValue(row, mapping, field);
   const number = value ? Number(value) : null;
   return Number.isFinite(number) ? number : null;
 }
@@ -529,7 +519,7 @@ export async function softDeleteContact(contactId: string) {
   redirect("/contacts");
 }
 
-export async function importContacts(formData: FormData) {
+export async function importMappedContacts(formData: FormData) {
   "use server";
 
   const membership = await getCurrentOrg();
@@ -539,33 +529,33 @@ export async function importContacts(formData: FormData) {
     redirect("/onboarding/create-org");
   }
 
-  const file = formData.get("file");
+  const source = formValue(formData, "csv_filename");
+  const rawMapping = formValue(formData, "csv_mapping");
+  const rawRows = formValue(formData, "csv_rows");
 
-  if (!(file instanceof File) || file.size === 0) {
-    redirect("/contacts/import?error=missing_file");
-  }
-
-  if (!file.name.toLowerCase().endsWith(".csv")) {
+  if (!source.toLowerCase().endsWith(".csv")) {
     redirect("/contacts/import?error=csv_only");
   }
 
-  const text = await file.text();
-  const parsed = Papa.parse<Record<string, string>>(text, {
-    header: true,
-    skipEmptyLines: true,
-    transformHeader: normalizeCsvHeader
-  });
+  let mapping: Record<string, string>;
+  let rows: Record<string, string>[];
 
-  if (parsed.errors.length > 0) {
-    redirect(`/contacts/import?error=${encodeURIComponent(parsed.errors[0]?.message ?? "Invalid CSV")}`);
+  try {
+    mapping = JSON.parse(rawMapping) as Record<string, string>;
+    rows = JSON.parse(rawRows) as Record<string, string>[];
+  } catch {
+    redirect("/contacts/import?error=invalid_payload");
   }
 
-  const rows = parsed.data;
+  if (!mapping.email || !Array.isArray(rows)) {
+    redirect("/contacts/import?error=mapping_required");
+  }
+
   const supabase = await createClientForServer();
   const contactTypes = await listContactTypes();
   const typeLookup = new Map(contactTypes.map((type) => [type.name.trim().toLowerCase(), type.id]));
   const emails = rows
-    .map((row) => csvValue(row, ["email", "primary_email", "email_address"])?.toLowerCase())
+    .map((row) => mappedValue(row, mapping, "email")?.toLowerCase())
     .filter((email): email is string => Boolean(email));
 
   if (emails.length === 0) {
@@ -586,35 +576,35 @@ export async function importContacts(formData: FormData) {
   const existingEmails = new Set((existingRows ?? []).map((row) => String(row.email).toLowerCase()));
   const seenEmails = new Set<string>();
   const contactsToInsert = rows.flatMap((row) => {
-    const email = csvValue(row, ["email", "primary_email", "email_address"])?.toLowerCase();
+    const email = mappedValue(row, mapping, "email")?.toLowerCase();
 
     if (!email || existingEmails.has(email) || seenEmails.has(email)) {
       return [];
     }
 
     seenEmails.add(email);
-    const typeName = csvValue(row, ["contact_type", "type"]);
+    const typeName = mappedValue(row, mapping, "contact_type");
 
     return [{
       org_id: org.id,
-      salutation: csvValue(row, ["salutation"]),
-      first_name: csvValue(row, ["first_name", "firstname", "given_name"]),
-      last_name: csvValue(row, ["last_name", "lastname", "surname", "family_name"]),
+      salutation: mappedValue(row, mapping, "salutation"),
+      first_name: mappedValue(row, mapping, "first_name"),
+      last_name: mappedValue(row, mapping, "last_name"),
       email,
-      phone: csvValue(row, ["phone", "primary_phone", "phone_number", "mobile"]),
-      alternate_email: csvValue(row, ["alternate_email", "alt_email", "secondary_email"]),
-      alternate_phone: csvValue(row, ["alternate_phone", "alt_phone", "secondary_phone"]),
-      organization_name: csvValue(row, ["organization_name", "organization", "account", "company"]),
+      phone: mappedValue(row, mapping, "phone"),
+      alternate_email: mappedValue(row, mapping, "alternate_email"),
+      alternate_phone: mappedValue(row, mapping, "alternate_phone"),
+      organization_name: mappedValue(row, mapping, "organization_name"),
       contact_type_id: typeName ? typeLookup.get(typeName.trim().toLowerCase()) ?? null : null,
-      address_line1: csvValue(row, ["address_line1", "address_1", "street", "address"]),
-      address_line2: csvValue(row, ["address_line2", "address_2"]),
-      city: csvValue(row, ["city"]),
-      state_province: csvValue(row, ["state_province", "province", "state", "region"]),
-      postal_code: csvValue(row, ["postal_code", "zip", "zip_code"]),
-      country: csvValue(row, ["country"]),
-      sex: csvValue(row, ["sex", "gender"]),
-      age: csvNumber(row, ["age"]),
-      source: file.name,
+      address_line1: mappedValue(row, mapping, "address_line1"),
+      address_line2: mappedValue(row, mapping, "address_line2"),
+      city: mappedValue(row, mapping, "city"),
+      state_province: mappedValue(row, mapping, "state_province"),
+      postal_code: mappedValue(row, mapping, "postal_code"),
+      country: mappedValue(row, mapping, "country"),
+      sex: mappedValue(row, mapping, "sex"),
+      age: mappedNumber(row, mapping, "age"),
+      source,
       email_status: "pending",
       custom_fields: {}
     }];
