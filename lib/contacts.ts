@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import Papa from "papaparse";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 
@@ -54,6 +55,27 @@ function formValue(formData: FormData, key: string) {
 function nullableFormValue(formData: FormData, key: string) {
   const value = formValue(formData, key);
   return value || null;
+}
+
+function normalizeCsvHeader(header: string) {
+  return header.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function csvValue(row: Record<string, string>, keys: string[]) {
+  for (const key of keys) {
+    const value = row[key]?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function csvNumber(row: Record<string, string>, keys: string[]) {
+  const value = csvValue(row, keys);
+  const number = value ? Number(value) : null;
+  return Number.isFinite(number) ? number : null;
 }
 
 export async function listContacts(filters: ContactFilters = {}) {
@@ -505,6 +527,109 @@ export async function softDeleteContact(contactId: string) {
 
   revalidatePath("/contacts");
   redirect("/contacts");
+}
+
+export async function importContacts(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/contacts/import?error=missing_file");
+  }
+
+  if (!file.name.toLowerCase().endsWith(".csv")) {
+    redirect("/contacts/import?error=csv_only");
+  }
+
+  const text = await file.text();
+  const parsed = Papa.parse<Record<string, string>>(text, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: normalizeCsvHeader
+  });
+
+  if (parsed.errors.length > 0) {
+    redirect(`/contacts/import?error=${encodeURIComponent(parsed.errors[0]?.message ?? "Invalid CSV")}`);
+  }
+
+  const rows = parsed.data;
+  const supabase = await createClientForServer();
+  const contactTypes = await listContactTypes();
+  const typeLookup = new Map(contactTypes.map((type) => [type.name.trim().toLowerCase(), type.id]));
+  const emails = rows
+    .map((row) => csvValue(row, ["email", "primary_email", "email_address"])?.toLowerCase())
+    .filter((email): email is string => Boolean(email));
+
+  if (emails.length === 0) {
+    redirect("/contacts/import?error=no_email_rows");
+  }
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("contacts")
+    .select("email")
+    .eq("org_id", org.id)
+    .is("deleted_at", null)
+    .in("email", emails);
+
+  if (existingError) {
+    redirect(`/contacts/import?error=${encodeURIComponent(existingError.message)}`);
+  }
+
+  const existingEmails = new Set((existingRows ?? []).map((row) => String(row.email).toLowerCase()));
+  const seenEmails = new Set<string>();
+  const contactsToInsert = rows.flatMap((row) => {
+    const email = csvValue(row, ["email", "primary_email", "email_address"])?.toLowerCase();
+
+    if (!email || existingEmails.has(email) || seenEmails.has(email)) {
+      return [];
+    }
+
+    seenEmails.add(email);
+    const typeName = csvValue(row, ["contact_type", "type"]);
+
+    return [{
+      org_id: org.id,
+      salutation: csvValue(row, ["salutation"]),
+      first_name: csvValue(row, ["first_name", "firstname", "given_name"]),
+      last_name: csvValue(row, ["last_name", "lastname", "surname", "family_name"]),
+      email,
+      phone: csvValue(row, ["phone", "primary_phone", "phone_number", "mobile"]),
+      alternate_email: csvValue(row, ["alternate_email", "alt_email", "secondary_email"]),
+      alternate_phone: csvValue(row, ["alternate_phone", "alt_phone", "secondary_phone"]),
+      organization_name: csvValue(row, ["organization_name", "organization", "account", "company"]),
+      contact_type_id: typeName ? typeLookup.get(typeName.trim().toLowerCase()) ?? null : null,
+      address_line1: csvValue(row, ["address_line1", "address_1", "street", "address"]),
+      address_line2: csvValue(row, ["address_line2", "address_2"]),
+      city: csvValue(row, ["city"]),
+      state_province: csvValue(row, ["state_province", "province", "state", "region"]),
+      postal_code: csvValue(row, ["postal_code", "zip", "zip_code"]),
+      country: csvValue(row, ["country"]),
+      sex: csvValue(row, ["sex", "gender"]),
+      age: csvNumber(row, ["age"]),
+      source: file.name,
+      email_status: "pending",
+      custom_fields: {}
+    }];
+  });
+
+  if (contactsToInsert.length > 0) {
+    const { error } = await supabase.from("contacts").insert(contactsToInsert);
+
+    if (error) {
+      redirect(`/contacts/import?error=${encodeURIComponent(error.message)}`);
+    }
+  }
+
+  revalidatePath("/contacts");
+  redirect(`/contacts/import?imported=${contactsToInsert.length}&skipped=${emails.length - contactsToInsert.length}`);
 }
 
 export function contactDisplayName(contact: Pick<ContactListItem, "first_name" | "last_name" | "email">) {

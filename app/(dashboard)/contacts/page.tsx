@@ -1,4 +1,4 @@
-import { Plus, Upload } from "lucide-react";
+import { Plus, Settings2, Tags, Upload } from "lucide-react";
 import { ContactFilters } from "@/components/contacts/ContactFilters";
 import { ContactTable } from "@/components/contacts/ContactTable";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -28,9 +28,6 @@ export default async function ContactsPage({
               <Upload className="h-4 w-4" />
               Import
             </Button>
-            <Button href="/contacts/tags" variant="secondary">
-              Tags
-            </Button>
             <Button href="/contacts/new">
               <Plus className="h-4 w-4" />
               Contact
@@ -56,6 +53,16 @@ export default async function ContactsPage({
           title="Contact list"
         />
         <div className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+            <Button className="h-9 px-3" href="/contacts/tags" variant="ghost">
+              <Tags className="h-4 w-4" />
+              Manage tags
+            </Button>
+            <Button className="h-9 px-3" href="/contacts/types" variant="ghost">
+              <Settings2 className="h-4 w-4" />
+              Manage contact types
+            </Button>
+          </div>
           {contacts.length > 0 ? (
             <ContactTable contacts={contacts} />
           ) : (
