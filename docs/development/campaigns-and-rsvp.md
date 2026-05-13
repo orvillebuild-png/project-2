@@ -14,6 +14,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Email body.
 - Basic email design controls.
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
+- Authenticated email preview route that renders the same HTML used by Resend.
+- Full-size email preview screen.
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
@@ -74,6 +76,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
 - Compose the email in a focused studio layout instead of a single raw admin form.
+- Review the exact email HTML before sending through the side preview or full-size preview.
 - Send one rendered test email when Resend is configured.
 - Send the real campaign to pending recipients after confirming the action.
 - Resume a partial send by sending remaining pending recipients.
@@ -101,6 +104,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - The editor separates content authoring from operational sending controls.
 - Merge fields are always visible as chips while writing the message.
 - Preview sits beside the editor on desktop so changes are easier to reason about.
+- Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
 - Delivery actions are grouped into one console:
   - RSVP link generation/sync
   - test email
@@ -112,6 +116,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - `app/(dashboard)/campaigns/page.tsx`
 - `app/(dashboard)/campaigns/new/page.tsx`
 - `app/(dashboard)/campaigns/[id]/page.tsx`
+- `app/(dashboard)/campaigns/[id]/email-preview/route.ts`
+- `app/(dashboard)/campaigns/[id]/preview/page.tsx`
 - `app/rsvp/[token]/page.tsx`
 - `lib/campaigns.ts`
 - `lib/rsvp.ts`

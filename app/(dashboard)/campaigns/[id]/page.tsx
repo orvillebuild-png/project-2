@@ -262,37 +262,28 @@ export default async function CampaignDetailPage({
         <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
           <Card className="overflow-hidden">
             <div className="border-b border-line bg-[#ffe07a] px-5 py-4">
-              <p className="text-[0.7rem] font-black uppercase tracking-[0.18em] text-night/55">Live email preview</p>
-              <h2 className="mt-1 text-lg font-semibold text-night">Recipient view</h2>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[0.7rem] font-black uppercase tracking-[0.18em] text-night/55">Live email preview</p>
+                  <h2 className="mt-1 text-lg font-semibold text-night">Recipient view</h2>
+                </div>
+                <Button className="bg-white/88 text-night hover:bg-white" href={`/campaigns/${campaign.id}/preview`} variant="secondary">
+                  Full size
+                </Button>
+              </div>
             </div>
             <div className="p-5">
               {preview ? (
-                <div className="rounded-[1.4rem] border border-line bg-white p-3 shadow-soft">
+                <div className="rounded-[1.4rem] border border-line bg-white p-2 shadow-soft">
                   <div className="rounded-[1.1rem] bg-field px-4 py-3">
                     <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-muted">To: {preview.sampleEmail}</p>
                     <p className="mt-1 text-sm font-semibold text-ink">{preview.subject}</p>
                   </div>
-                  <div className="mt-3 overflow-hidden rounded-[1.15rem] border border-line bg-white">
-                    <div className="bg-night px-4 py-5 text-white">
-                      <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-amber">Invitation</p>
-                      <h3 className="mt-2 text-2xl font-semibold leading-tight">{preview.design.headline}</h3>
-                    </div>
-                    <div className="space-y-4 p-4">
-                      {preview.design.intro ? <p className="text-sm leading-6 text-muted">{preview.design.intro}</p> : null}
-                      <div className="whitespace-pre-wrap text-sm leading-6 text-muted">{preview.body}</div>
-                      {preview.design.show_event_details ? (
-                        <div className="rounded-xl border border-line bg-field p-3 text-sm text-muted">
-                          <p className="font-semibold text-ink">{preview.eventTitle}</p>
-                          <p className="mt-1">{preview.eventDate}</p>
-                          <p className="mt-1">{preview.venue}</p>
-                        </div>
-                      ) : null}
-                      <a className="inline-flex h-10 items-center justify-center rounded-full bg-moss px-4 text-sm font-semibold text-white" href={preview.rsvpLink}>
-                        {preview.design.button_label}
-                      </a>
-                      {preview.design.footer ? <p className="border-t border-line pt-4 text-xs leading-5 text-muted">{preview.design.footer}</p> : null}
-                    </div>
-                  </div>
+                  <iframe
+                    className="mt-3 h-[600px] w-full rounded-[1.1rem] border border-line bg-white"
+                    src={`/campaigns/${campaign.id}/email-preview`}
+                    title="Email preview"
+                  />
                 </div>
               ) : (
                 <p className="rounded-2xl border border-dashed border-line bg-field px-4 py-8 text-center text-sm text-muted">

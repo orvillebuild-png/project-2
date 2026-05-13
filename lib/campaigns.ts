@@ -363,7 +363,7 @@ function escapeHtml(value: string) {
 function paragraphHtml(value: string) {
   return escapeHtml(value)
     .split("\n")
-    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:#42526b;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
+    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:#716f66;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
     .join("");
 }
 
@@ -430,34 +430,34 @@ export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRs
   );
 }
 
-function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
+export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
   const eventDetails = preview.design.show_event_details
     ? `
-      <div style="margin:24px 0;padding:16px;border:1px solid #d7dee8;border-radius:8px;background:#f7f9f8;">
-        <p style="margin:0 0 8px;font-weight:700;color:#102033;">${escapeHtml(preview.eventTitle)}</p>
-        <p style="margin:0 0 6px;color:#42526b;">${escapeHtml(preview.eventDate)}</p>
-        <p style="margin:0;color:#42526b;">${escapeHtml(preview.venue)}</p>
+      <div style="margin:24px 0;padding:16px;border:1px solid #dfdccf;border-radius:12px;background:#f7f4eb;">
+        <p style="margin:0 0 8px;font-weight:700;color:#181713;">${escapeHtml(preview.eventTitle)}</p>
+        <p style="margin:0 0 6px;color:#716f66;">${escapeHtml(preview.eventDate)}</p>
+        <p style="margin:0;color:#716f66;">${escapeHtml(preview.venue)}</p>
       </div>
     `
     : "";
 
   const cta = preview.rsvpLink.startsWith("http") || preview.rsvpLink.startsWith("/")
-    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:6px;background:#39705f;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
+    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:999px;background:#1f6b5d;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
     : "";
 
   return `
-    <div style="margin:0;padding:28px;background:#fbfaf7;font-family:Arial,Helvetica,sans-serif;">
-      <div style="max-width:640px;margin:0 auto;border:1px solid #d7dee8;border-radius:10px;overflow:hidden;background:#ffffff;">
-        <div style="padding:28px;background:#39705f;color:#ffffff;">
-          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.82;">Invitation</p>
-          <h1 style="margin:0;font-size:28px;line-height:1.25;">${escapeHtml(preview.design.headline)}</h1>
+    <div style="margin:0;padding:36px;background:#f8f5eb;font-family:Inter,Arial,Helvetica,sans-serif;">
+      <div style="max-width:640px;margin:0 auto;border:1px solid #dfdccf;border-radius:18px;overflow:hidden;background:#ffffff;">
+        <div style="padding:30px 28px;background:#161616;color:#ffffff;">
+          <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#ffca3a;">Invitation</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:700;">${escapeHtml(preview.design.headline)}</h1>
         </div>
         <div style="padding:28px;">
-          ${preview.design.intro ? `<p style="margin:0 0 18px;color:#42526b;line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
+          ${preview.design.intro ? `<p style="margin:0 0 18px;color:#716f66;line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
           ${paragraphHtml(preview.body)}
           ${eventDetails}
           ${cta}
-          ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #e5e8ee;color:#667085;font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
+          ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #dfdccf;color:#716f66;font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
         </div>
       </div>
     </div>

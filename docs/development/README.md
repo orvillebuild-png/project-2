@@ -11,6 +11,7 @@ This folder tracks the implementation as it exists now. Keep these documents upd
 - [Campaigns and RSVP](./campaigns-and-rsvp.md)
 - [Cards](./cards.md)
 - [Error Handling and Operations](./error-handling-and-operations.md)
+- [Reference Resources](./reference-resources.md)
 
 ## Current Product Flow
 
