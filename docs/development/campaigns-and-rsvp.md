@@ -19,8 +19,12 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Email-safe template controls:
   - page, header, accent, text, and muted color selection
   - font family selection
-  - hero image URL
+  - hero image URL and upload
   - drag-adjusted image width
+- Shared campaign body editor for new drafts and later edits.
+- Body editor toolbar for undo, redo, bold, italic, underline-style strong text, link insertion, lists, quote snippets, and emoji insertion.
+- Sender identity fields for from name and from email.
+- File attachment upload and attachment link rendering.
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
@@ -83,6 +87,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Compose the email in a focused studio layout instead of a single raw admin form.
 - Review the exact email HTML before sending through the side preview or full-size preview.
 - Tune the email template styling without editing raw HTML.
+- Upload a campaign image or attachment into the `email-assets` Supabase Storage bucket.
+- Insert a link into selected words using markdown-style `[text](url)` syntax, which renders as an email-safe link.
 - Send one rendered test email when Resend is configured.
 - Send the real campaign to pending recipients after confirming the action.
 - Resume a partial send by sending remaining pending recipients.
@@ -113,6 +119,9 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
 - Template controls intentionally use email-client-safe inline styles.
 - Image insertion currently accepts public HTTP/HTTPS image URLs and stores the target width in template design JSON.
+- Uploaded email images and attachments are stored in a public org-scoped `email-assets` bucket.
+- Attachments are included as Resend attachments when sending and also shown as a link in the email body.
+- `from_email` must be a sender/domain Resend is allowed to send from; otherwise Resend will reject the send.
 - Delivery actions are grouped into one console:
   - RSVP link generation/sync
   - test email
@@ -126,6 +135,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - `app/(dashboard)/campaigns/[id]/page.tsx`
 - `app/(dashboard)/campaigns/[id]/email-preview/route.ts`
 - `app/(dashboard)/campaigns/[id]/preview/page.tsx`
+- `components/campaigns/CampaignBodyEditor.tsx`
+- `components/campaigns/EmailTemplateControls.tsx`
 - `app/rsvp/[token]/page.tsx`
 - `lib/campaigns.ts`
 - `lib/rsvp.ts`

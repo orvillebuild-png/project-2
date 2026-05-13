@@ -43,6 +43,10 @@ export type EmailDesignData = {
   image_url: string;
   image_alt: string;
   image_width: number;
+  attachment_url: string;
+  attachment_name: string;
+  from_name: string;
+  from_email: string;
 };
 
 export type CampaignEventOption = {
@@ -100,8 +104,16 @@ function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
     muted_color: "#716f66",
     image_url: "",
     image_alt: "",
-    image_width: 640
+    image_width: 640,
+    attachment_url: "",
+    attachment_name: "",
+    from_name: "Project 2",
+    from_email: ""
   };
+}
+
+export function newCampaignDesignDefaults() {
+  return defaultDesignData();
 }
 
 function hexValue(value: string, fallback: string) {
@@ -147,7 +159,11 @@ function designDataFromForm(formData: FormData): EmailDesignData {
     muted_color: hexValue(formValue(formData, "muted_color"), defaults.muted_color),
     image_url: formValue(formData, "image_url"),
     image_alt: formValue(formData, "image_alt"),
-    image_width: numericValue(formValue(formData, "image_width"), defaults.image_width, 180, 640)
+    image_width: numericValue(formValue(formData, "image_width"), defaults.image_width, 180, 640),
+    attachment_url: formValue(formData, "attachment_url"),
+    attachment_name: formValue(formData, "attachment_name"),
+    from_name: formValue(formData, "from_name") || defaults.from_name,
+    from_email: formValue(formData, "from_email")
   };
 }
 
@@ -169,7 +185,11 @@ function normalizeDesignData(value: unknown): EmailDesignData {
     muted_color: typeof data.muted_color === "string" ? hexValue(data.muted_color, defaults.muted_color) : defaults.muted_color,
     image_url: typeof data.image_url === "string" ? data.image_url : defaults.image_url,
     image_alt: typeof data.image_alt === "string" ? data.image_alt : defaults.image_alt,
-    image_width: typeof data.image_width === "number" ? numericValue(String(data.image_width), defaults.image_width, 180, 640) : defaults.image_width
+    image_width: typeof data.image_width === "number" ? numericValue(String(data.image_width), defaults.image_width, 180, 640) : defaults.image_width,
+    attachment_url: typeof data.attachment_url === "string" ? data.attachment_url : defaults.attachment_url,
+    attachment_name: typeof data.attachment_name === "string" ? data.attachment_name : defaults.attachment_name,
+    from_name: typeof data.from_name === "string" && data.from_name.trim() ? data.from_name : defaults.from_name,
+    from_email: typeof data.from_email === "string" ? data.from_email : defaults.from_email
   };
 }
 
@@ -193,6 +213,17 @@ function absoluteAppUrl() {
 
 function encodeError(value: string) {
   return encodeURIComponent(value.slice(0, 420));
+}
+
+function senderFrom(design: EmailDesignData, fallback: string) {
+  const email = design.from_email.trim();
+
+  if (!email) {
+    return fallback;
+  }
+
+  const name = design.from_name.trim() || "Project 2";
+  return `${name.replace(/[<>]/g, "")} <${email.replace(/[<>]/g, "")}>`;
 }
 
 async function requireOrg() {
@@ -432,10 +463,23 @@ function safeImageUrl(value: string) {
   }
 }
 
+function inlineFormatHtml(value: string) {
+  let output = escapeHtml(value);
+
+  output = output.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" style="color:#1f6b5d;text-decoration:underline;">$1</a>');
+  output = output.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  output = output.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  output = output.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  output = output.replace(/_([^_]+)_/g, "<em>$1</em>");
+  output = output.replace(/`([^`]+)`/g, '<span style="font-family:monospace;background:#f7f4eb;padding:1px 4px;border-radius:4px;">$1</span>');
+
+  return output;
+}
+
 function paragraphHtml(value: string) {
-  return escapeHtml(value)
+  return value
     .split("\n")
-    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:inherit;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
+    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:inherit;line-height:1.6;">${inlineFormatHtml(line)}</p>` : `<div style="height:10px;"></div>`)
     .join("");
 }
 
@@ -505,10 +549,19 @@ export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRs
 
 export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
   const imageUrl = safeImageUrl(preview.design.image_url);
+  const attachmentUrl = safeImageUrl(preview.design.attachment_url);
   const image = imageUrl
     ? `
       <div style="margin:0 0 24px;text-align:center;">
         <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(preview.design.image_alt)}" width="${preview.design.image_width}" style="display:block;width:100%;max-width:${preview.design.image_width}px;height:auto;margin:0 auto;border-radius:14px;border:1px solid #dfdccf;" />
+      </div>
+    `
+    : "";
+  const attachment = attachmentUrl
+    ? `
+      <div style="margin:24px 0;padding:14px 16px;border:1px solid #dfdccf;border-radius:12px;background:#fffdf4;">
+        <p style="margin:0 0 6px;font-weight:700;color:${preview.design.text_color};">Attachment</p>
+        <a href="${escapeHtml(attachmentUrl)}" style="color:#1f6b5d;text-decoration:underline;font-weight:700;">${escapeHtml(preview.design.attachment_name || "Open attached file")}</a>
       </div>
     `
     : "";
@@ -538,6 +591,7 @@ export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<
           ${preview.design.intro ? `<p style="margin:0 0 18px;color:${preview.design.muted_color};line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
           ${paragraphHtml(preview.body)}
           ${eventDetails}
+          ${attachment}
           ${cta}
           ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #dfdccf;color:${preview.design.muted_color};font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
         </div>
@@ -547,6 +601,7 @@ export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<
 }
 
 async function sendResendEmail({
+  attachment,
   apiKey,
   from,
   html,
@@ -554,6 +609,7 @@ async function sendResendEmail({
   subject,
   to
 }: {
+  attachment?: { filename: string; path: string } | null;
   apiKey: string;
   from: string;
   html: string;
@@ -569,6 +625,7 @@ async function sendResendEmail({
       "Idempotency-Key": idempotencyKey
     },
     body: JSON.stringify({
+      attachments: attachment ? [attachment] : undefined,
       from,
       to,
       subject,
@@ -743,7 +800,11 @@ export async function sendCampaignTestEmail(campaignId: string, formData: FormDa
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from,
+      attachments: preview.design.attachment_url ? [{
+        filename: preview.design.attachment_name || "attachment",
+        path: preview.design.attachment_url
+      }] : undefined,
+      from: senderFrom(preview.design, from),
       to,
       subject: `[Test] ${preview.subject}`,
       html
@@ -827,8 +888,12 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
 
       const preview = buildPreviewFromContact(campaign, row.contact, row.rsvp_token, appUrl);
       await sendResendEmail({
+        attachment: preview.design.attachment_url ? {
+          filename: preview.design.attachment_name || "attachment",
+          path: preview.design.attachment_url
+        } : null,
         apiKey: resendApiKey,
-        from,
+        from: senderFrom(preview.design, from),
         to: row.contact.email,
         subject: preview.subject,
         html: renderCampaignEmailHtml(preview),

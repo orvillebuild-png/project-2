@@ -1,7 +1,10 @@
+import { CampaignBodyEditor } from "@/components/campaigns/CampaignBodyEditor";
+import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { createCampaign, listCampaignEventOptions } from "@/lib/campaigns";
+import { createCampaign, listCampaignEventOptions, newCampaignDesignDefaults } from "@/lib/campaigns";
+import { getCurrentOrg } from "@/lib/auth";
 
 const mergeFields = ["{{first_name}}", "{{event_title}}", "{{event_date}}", "{{venue}}", "{{rsvp_link}}"];
 
@@ -10,8 +13,9 @@ export default async function NewCampaignPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [{ error }, events] = await Promise.all([searchParams, listCampaignEventOptions()]);
+  const [{ error }, events, membership] = await Promise.all([searchParams, listCampaignEventOptions(), getCurrentOrg()]);
   const defaultEvent = events.find((event) => event.invitee_count > 0) ?? events[0];
+  const designDefaults = newCampaignDesignDefaults();
 
   return (
     <>
@@ -76,71 +80,11 @@ export default async function NewCampaignPage({
               />
             </label>
           </section>
-          <section className="grid gap-4 rounded-2xl border border-line bg-[#fff8dc]/72 p-4 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <p className="text-sm font-semibold text-ink">Design direction</p>
-              <p className="mt-1 text-[0.78rem] leading-5 text-muted">Shape the rendered email before you move into preview and delivery.</p>
-            </div>
-            <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
-              Email headline
-              <input
-                className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue="You are invited to {{event_title}}"
-                name="headline"
-                required
-              />
-            </label>
-            <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
-              Intro copy
-              <textarea
-                className="min-h-24 rounded-xl border border-line bg-white/90 px-3 py-3 text-[0.85rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue="We would be glad to have you with us."
-                name="intro"
-              />
-            </label>
-            <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-              RSVP button label
-              <input
-                className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue="RSVP now"
-                name="button_label"
-                required
-              />
-            </label>
-            <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-              Footer
-              <input
-                className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue="Thank you."
-                name="footer"
-              />
-            </label>
-            <label className="flex items-center gap-2 rounded-xl border border-line bg-white/78 px-3 py-3 text-[0.82rem] font-semibold text-ink md:col-span-2">
-              <input className="h-4 w-4 rounded border-line text-moss focus:ring-moss" defaultChecked name="show_event_details" type="checkbox" />
-              Show event details block
-            </label>
-          </section>
-          <section className="grid gap-4 rounded-2xl border border-line bg-white/68 p-4">
-            <div>
-              <p className="text-sm font-semibold text-ink">Message</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {mergeFields.map((field) => (
-                  <span className="rounded-full border border-line bg-field px-3 py-1 text-[0.72rem] font-semibold text-muted" key={field}>
-                    {field}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-              Body
-              <textarea
-                className="min-h-72 rounded-2xl border border-line bg-field/70 px-4 py-4 text-[0.86rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
-                name="body"
-                required
-              />
-            </label>
-          </section>
+          <CampaignBodyEditor
+            defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
+            mergeFields={mergeFields}
+          />
+          <EmailTemplateControls design={designDefaults} orgId={membership?.orgs?.id ?? ""} />
           <div className="flex justify-end">
             <Button type="submit">Save draft</Button>
           </div>

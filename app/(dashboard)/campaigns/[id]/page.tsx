@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { Mail, Send, Sparkles } from "lucide-react";
+import { Mail, Send } from "lucide-react";
+import { CampaignBodyEditor } from "@/components/campaigns/CampaignBodyEditor";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { requireUser } from "@/lib/auth";
+import { getCurrentOrg, requireUser } from "@/lib/auth";
 import { campaignRsvpSummary, getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft } from "@/lib/campaigns";
 
 const mergeFields = ["{{first_name}}", "{{event_title}}", "{{event_date}}", "{{venue}}", "{{rsvp_link}}"];
@@ -17,16 +18,17 @@ export default async function CampaignDetailPage({
   searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string; sent?: string; test_sent?: string }>;
 }) {
   const { id } = await params;
-  const [{ created, error, prepared, saved, sent, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user] = await Promise.all([
+  const [{ created, error, prepared, saved, sent, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user, membership] = await Promise.all([
     searchParams,
     getCampaign(id),
     getCampaignPreview(id),
     getCampaignSendLogCount(id),
     listCampaignRecipients(id),
-    requireUser()
+    requireUser(),
+    getCurrentOrg()
   ]);
 
-  if (!campaign || !campaign.email_templates) {
+  if (!campaign || !campaign.email_templates || !membership?.orgs) {
     notFound();
   }
 
@@ -117,31 +119,9 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <section className="grid gap-4 rounded-2xl border border-line/90 bg-white/68 p-4">
-                <SectionTitle
-                  description="Write the plain campaign copy here. Merge fields stay visible so the editor does not become a guessing game."
-                  icon={<Sparkles className="h-4 w-4" />}
-                  title="Message"
-                />
-                <div className="flex flex-wrap items-start gap-2">
-                  {mergeFields.map((field) => (
-                    <span className="inline-flex h-7 items-center rounded-full border border-line bg-field px-3 text-[0.72rem] font-semibold text-muted" key={field}>
-                      {field}
-                    </span>
-                  ))}
-                </div>
-                <label className="mx-auto grid w-full max-w-2xl gap-2 text-[0.78rem] font-semibold text-ink">
-                  Body
-                  <textarea
-                    className="min-h-80 rounded-2xl border border-line bg-field/70 px-4 py-4 text-[0.86rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                    defaultValue={campaign.email_templates.html_body}
-                    name="body"
-                    required
-                  />
-                </label>
-              </section>
+              <CampaignBodyEditor defaultValue={campaign.email_templates.html_body} mergeFields={mergeFields} />
 
-              <EmailTemplateControls design={campaign.email_templates.design_data} />
+              <EmailTemplateControls design={campaign.email_templates.design_data} orgId={membership.orgs.id} />
 
               <div className="flex justify-end">
                 <Button type="submit">Save changes</Button>

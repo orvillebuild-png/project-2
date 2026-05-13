@@ -123,6 +123,27 @@ Handling:
 - Storage insert/update/delete policies require authenticated workspace membership.
 - The card JSON stores the public URL and layer metadata, not base64 image content.
 
+### Email asset upload failure
+
+Symptoms:
+
+- Image upload or attachment upload shows an upload error in the campaign editor.
+- Uploaded image does not appear in preview.
+
+Likely causes:
+
+- User is not in a workspace.
+- File exceeds the `email-assets` bucket 10 MB limit.
+- File type is not in the allowed MIME list.
+- Storage policy cannot match the org ID path prefix.
+
+Expected behavior:
+
+- Campaign editor uploads files under `{org_id}/campaign-assets/...`.
+- Public URLs are stored in the email template design JSON.
+- Images render in the email preview and sent email.
+- Attachments render as a link in the email and are also passed to Resend as attachments during test and campaign sends.
+
 ## Supabase Security Advisor Current Known Warning
 
 - Leaked password protection is disabled.
