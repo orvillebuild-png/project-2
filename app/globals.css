@@ -69,3 +69,8 @@ textarea {
     linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 34%),
     radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.55), transparent 16rem);
 }
+
+.card-preview-3d {
+  transform: perspective(1200px) rotateX(8deg) rotateY(-12deg);
+  filter: drop-shadow(28px 32px 28px rgba(16, 32, 51, 0.22));
+}

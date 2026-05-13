@@ -22,6 +22,10 @@ Cards are reusable invitation designs that can later be attached to campaigns an
 - Text layers.
 - Shape/callout layers.
 - Layer selection, duplicate, delete, position, size, text, color, fill, radius, alignment, and font weight controls.
+- Centered editing canvas.
+- Pop-up side panels for design, size, layers, and selected-layer editing.
+- Drag-to-position for selected layers.
+- 3D preview toggle using CSS perspective.
 - Live preview.
 
 ## Current Card Flow
@@ -30,9 +34,11 @@ Cards are reusable invitation designs that can later be attached to campaigns an
 2. User creates a new card or opens an existing one.
 3. User chooses a size preset or custom dimensions.
 4. User applies a design direction.
-5. User edits layers from the side panel.
-6. User saves the card.
-7. The design is stored as structured JSON in `invitation_cards.canvas_data`.
+5. User adds text or shape layers from the toolbar.
+6. User clicks a layer to open the inspector.
+7. User drags a layer on the card or fine-tunes values in the inspector.
+8. User saves the card.
+9. The design is stored as structured JSON in `invitation_cards.canvas_data`.
 
 ## Use Cases
 
@@ -62,9 +68,10 @@ Cards are reusable invitation designs that can later be attached to campaigns an
 
 ## Current Limitations
 
-- Layers are edited through numeric controls, not drag-and-drop yet.
+- Layers can be moved by dragging, but resize handles are not implemented yet.
 - No image upload layer yet.
 - No logo library yet.
 - No PNG export yet.
 - Cards are not attached to campaigns yet.
 - No reusable template marketplace/library yet.
+- 3D mode is a preview effect, not a true 3D object editor.

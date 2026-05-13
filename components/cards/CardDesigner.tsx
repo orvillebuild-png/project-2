@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Layers, Save, Square, Trash2, Type } from "lucide-react";
+import { Box, Copy, Layers, Palette, PanelRightClose, Save, Settings2, Square, Trash2, Type } from "lucide-react";
 import { CardPreview } from "@/components/cards/CardPreview";
 import { Button } from "@/components/ui/Button";
 import type { CardLayer, CardSizePreset, InvitationCardData } from "@/lib/cards";
@@ -15,23 +15,13 @@ const sizePresets: Array<{ label: string; value: CardSizePreset; width: number; 
 ];
 
 const designPresets: Array<{ label: string; data: Partial<InvitationCardData> }> = [
-  {
-    label: "Clean nonprofit",
-    data: { backgroundColor: "#fbfaf7", accentColor: "#39705f", texture: "paper" }
-  },
-  {
-    label: "Formal gala",
-    data: { backgroundColor: "#101827", accentColor: "#c8a45d", texture: "soft" }
-  },
-  {
-    label: "Community bright",
-    data: { backgroundColor: "#f7f3dc", accentColor: "#d65745", texture: "grid" }
-  },
-  {
-    label: "Quiet editorial",
-    data: { backgroundColor: "#f2f5f4", accentColor: "#2f6f8f", texture: "none" }
-  }
+  { label: "Clean nonprofit", data: { backgroundColor: "#fbfaf7", accentColor: "#39705f", texture: "paper" } },
+  { label: "Formal gala", data: { backgroundColor: "#101827", accentColor: "#c8a45d", texture: "soft" } },
+  { label: "Community bright", data: { backgroundColor: "#f7f3dc", accentColor: "#d65745", texture: "grid" } },
+  { label: "Quiet editorial", data: { backgroundColor: "#f2f5f4", accentColor: "#2f6f8f", texture: "none" } }
 ];
+
+type Panel = "design" | "layers" | "size" | null;
 
 export function CardDesigner({
   action,
@@ -49,8 +39,11 @@ export function CardDesigner({
   const [name, setName] = useState(cardName);
   const [data, setData] = useState(cardData);
   const [selectedLayerId, setSelectedLayerId] = useState(cardData.layers[0]?.id ?? "");
+  const [panel, setPanel] = useState<Panel>(null);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [is3d, setIs3d] = useState(false);
   const selectedLayer = data.layers.find((layer) => layer.id === selectedLayerId) ?? data.layers[0];
-  const scale = useMemo(() => Math.min(0.52, 620 / data.width, 520 / data.height), [data.height, data.width]);
+  const scale = useMemo(() => Math.min(0.62, 760 / data.width, 600 / data.height), [data.height, data.width]);
 
   function updateData(update: Partial<InvitationCardData>) {
     setData((current) => ({ ...current, ...update }));
@@ -61,6 +54,11 @@ export function CardDesigner({
       ...current,
       layers: current.layers.map((layer) => layer.id === layerId ? { ...layer, ...update } : layer)
     }));
+  }
+
+  function selectLayer(layerId: string) {
+    setSelectedLayerId(layerId);
+    setInspectorOpen(true);
   }
 
   function addLayer(type: "text" | "shape") {
@@ -99,6 +97,7 @@ export function CardDesigner({
 
     setData((current) => ({ ...current, layers: [...current.layers, layer] }));
     setSelectedLayerId(id);
+    setInspectorOpen(true);
   }
 
   function duplicateLayer() {
@@ -116,6 +115,7 @@ export function CardDesigner({
     };
     setData((current) => ({ ...current, layers: [...current.layers, copy] }));
     setSelectedLayerId(id);
+    setInspectorOpen(true);
   }
 
   function deleteLayer() {
@@ -139,171 +139,290 @@ export function CardDesigner({
   }
 
   return (
-    <form action={action} className="grid gap-5 xl:grid-cols-[18rem_1fr_20rem]">
+    <form action={action} className="relative overflow-hidden rounded-lg border border-line bg-white shadow-soft">
       <input name="canvas_data" type="hidden" value={JSON.stringify(data)} />
-      <aside className="space-y-4 rounded-lg border border-line bg-white p-4 shadow-soft">
-        <div>
-          <label className="text-xs font-bold uppercase tracking-[0.14em] text-muted">Card name</label>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-white px-4 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <input
-            className="mt-2 h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 min-w-[15rem] rounded-md border border-line bg-field px-3 text-sm font-semibold text-ink outline-none focus:border-moss"
             name="name"
             onChange={(event) => setName(event.target.value)}
             required
             value={name}
           />
+          <span className="hidden text-xs text-muted sm:inline">{data.width} x {data.height}px</span>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <ToolbarButton active={panel === "design"} icon={<Palette className="h-4 w-4" />} label="Design" onClick={() => setPanel(panel === "design" ? null : "design")} />
+          <ToolbarButton active={panel === "size"} icon={<Settings2 className="h-4 w-4" />} label="Size" onClick={() => setPanel(panel === "size" ? null : "size")} />
+          <ToolbarButton active={panel === "layers"} icon={<Layers className="h-4 w-4" />} label="Layers" onClick={() => setPanel(panel === "layers" ? null : "layers")} />
+          <ToolbarButton active={is3d} icon={<Box className="h-4 w-4" />} label="3D" onClick={() => setIs3d((value) => !value)} />
+          <Button type="button" variant="secondary" onClick={() => addLayer("text")}><Type className="h-4 w-4" />Text</Button>
+          <Button type="button" variant="secondary" onClick={() => addLayer("shape")}><Square className="h-4 w-4" />Shape</Button>
+          <Button type="submit"><Save className="h-4 w-4" />Save</Button>
+        </div>
+      </div>
 
-        {error ? (
-          <p className="rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
-            {error === "missing_fields" ? "Card name and design data are required." : decodeURIComponent(error)}
-          </p>
+      {(error || notice) ? (
+        <div className="border-b border-line px-4 py-3">
+          {error ? (
+            <p className="rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
+              {error === "missing_fields" ? "Card name and design data are required." : decodeURIComponent(error)}
+            </p>
+          ) : null}
+          {notice ? <p className="rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">{notice}</p> : null}
+        </div>
+      ) : null}
+
+      <div className="relative min-h-[680px] bg-[#eef1f3]">
+        {panel ? (
+          <SidePanel title={panel === "design" ? "Design" : panel === "size" ? "Size" : "Layers"} onClose={() => setPanel(null)}>
+            {panel === "design" ? (
+              <DesignPanel data={data} updateData={updateData} />
+            ) : panel === "size" ? (
+              <SizePanel data={data} applySizePreset={applySizePreset} updateData={updateData} />
+            ) : (
+              <LayersPanel layers={data.layers} selectedLayerId={selectedLayer?.id} selectLayer={selectLayer} />
+            )}
+          </SidePanel>
         ) : null}
-        {notice ? <p className="rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">{notice}</p> : null}
 
-        <ControlGroup title="Size">
-          <select
-            className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-            onChange={(event) => applySizePreset(event.target.value as CardSizePreset)}
-            value={data.sizePreset}
-          >
-            {sizePresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
-            <option value="custom">Custom</option>
-          </select>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberInput label="W" max={3000} min={320} onChange={(width) => updateData({ width, sizePreset: "custom" })} value={data.width} />
-            <NumberInput label="H" max={3000} min={320} onChange={(height) => updateData({ height, sizePreset: "custom" })} value={data.height} />
-          </div>
-        </ControlGroup>
-
-        <ControlGroup title="Design">
-          <div className="grid gap-2">
-            {designPresets.map((preset) => (
-              <button
-                className="rounded-md border border-line bg-field px-3 py-2 text-left text-sm font-semibold text-ink hover:border-moss"
-                key={preset.label}
-                onClick={() => updateData(preset.data)}
-                type="button"
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-          <ColorInput label="Background" onChange={(backgroundColor) => updateData({ backgroundColor })} value={data.backgroundColor} />
-          <ColorInput label="Accent" onChange={(accentColor) => updateData({ accentColor })} value={data.accentColor} />
-          <select
-            className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-            onChange={(event) => updateData({ texture: event.target.value as InvitationCardData["texture"] })}
-            value={data.texture}
-          >
-            <option value="paper">Paper</option>
-            <option value="soft">Soft</option>
-            <option value="grid">Grid</option>
-            <option value="none">None</option>
-          </select>
-        </ControlGroup>
-
-        <Button className="w-full" type="submit"><Save className="h-4 w-4" />Save card</Button>
-      </aside>
-
-      <main className="min-w-0 rounded-lg border border-line bg-[#eef1f3] p-4 shadow-inner">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-ink">{name || "Untitled card"}</p>
-            <p className="text-xs text-muted">{data.width} x {data.height}px</p>
-          </div>
-          <div className="flex gap-2">
-            <Button type="button" variant="secondary" onClick={() => addLayer("text")}><Type className="h-4 w-4" />Text</Button>
-            <Button type="button" variant="secondary" onClick={() => addLayer("shape")}><Square className="h-4 w-4" />Shape</Button>
-          </div>
-        </div>
-        <div className="flex min-h-[560px] items-center justify-center overflow-auto rounded-lg border border-line bg-white p-5">
-          <CardPreview data={data} onSelectLayer={setSelectedLayerId} scale={scale} selectedLayerId={selectedLayerId} />
-        </div>
-      </main>
-
-      <aside className="space-y-4 rounded-lg border border-line bg-white p-4 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Layers className="h-4 w-4" />Layers</h2>
-          <span className="text-xs text-muted">{data.layers.length}</span>
-        </div>
-        <div className="grid gap-2">
-          {data.layers.map((layer) => (
-            <button
-              className={cn(
-                "rounded-md border px-3 py-2 text-left text-sm font-semibold",
-                selectedLayer?.id === layer.id ? "border-moss bg-[#edf7f0] text-moss" : "border-line bg-field text-ink"
-              )}
-              key={layer.id}
-              onClick={() => setSelectedLayerId(layer.id)}
-              type="button"
-            >
-              {layer.label}
-            </button>
-          ))}
-        </div>
-
-        {selectedLayer ? (
-          <ControlGroup title="Selected layer">
-            <input
-              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-              onChange={(event) => updateLayer(selectedLayer.id, { label: event.target.value })}
-              value={selectedLayer.label}
+        <main className="flex min-h-[680px] items-center justify-center overflow-auto p-6">
+          <div className={cn("transition-all", panel && "lg:translate-x-36", inspectorOpen && "lg:-translate-x-36")}>
+            <CardPreview
+              data={data}
+              is3d={is3d}
+              onMoveLayer={(layerId, position) => updateLayer(layerId, position)}
+              onSelectLayer={selectLayer}
+              scale={scale}
+              selectedLayerId={selectedLayerId}
             />
-            <textarea
-              className="min-h-24 rounded-md border border-line bg-field px-3 py-2 text-sm outline-none focus:border-moss"
-              onChange={(event) => updateLayer(selectedLayer.id, { text: event.target.value })}
-              value={selectedLayer.text ?? ""}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <NumberInput label="X" max={data.width} min={0} onChange={(x) => updateLayer(selectedLayer.id, { x })} value={selectedLayer.x} />
-              <NumberInput label="Y" max={data.height} min={0} onChange={(y) => updateLayer(selectedLayer.id, { y })} value={selectedLayer.y} />
-              <NumberInput label="W" max={data.width} min={20} onChange={(width) => updateLayer(selectedLayer.id, { width })} value={selectedLayer.width} />
-              <NumberInput label="H" max={data.height} min={20} onChange={(height) => updateLayer(selectedLayer.id, { height })} value={selectedLayer.height} />
-            </div>
-            <NumberInput label="Text size" max={180} min={8} onChange={(fontSize) => updateLayer(selectedLayer.id, { fontSize })} value={selectedLayer.fontSize ?? 36} />
-            <select
-              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-              onChange={(event) => updateLayer(selectedLayer.id, { fontWeight: event.target.value as CardLayer["fontWeight"] })}
-              value={selectedLayer.fontWeight}
-            >
-              <option value="400">Regular</option>
-              <option value="600">Semi bold</option>
-              <option value="700">Bold</option>
-              <option value="800">Extra bold</option>
-            </select>
-            <select
-              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-              onChange={(event) => updateLayer(selectedLayer.id, { align: event.target.value as CardLayer["align"] })}
-              value={selectedLayer.align}
-            >
-              <option value="left">Left</option>
-              <option value="center">Center</option>
-              <option value="right">Right</option>
-            </select>
-            <ColorInput label="Text" onChange={(color) => updateLayer(selectedLayer.id, { color })} value={selectedLayer.color} />
-            {selectedLayer.type === "shape" ? (
-              <>
-                <ColorInput label="Fill" onChange={(backgroundColor) => updateLayer(selectedLayer.id, { backgroundColor })} value={selectedLayer.backgroundColor ?? data.accentColor} />
-                <NumberInput label="Corner radius" max={100} min={0} onChange={(radius) => updateLayer(selectedLayer.id, { radius })} value={selectedLayer.radius ?? 8} />
-              </>
-            ) : null}
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="secondary" onClick={duplicateLayer}><Copy className="h-4 w-4" />Copy</Button>
-              <Button disabled={data.layers.length <= 1} type="button" variant="secondary" onClick={deleteLayer}><Trash2 className="h-4 w-4" />Delete</Button>
-            </div>
-          </ControlGroup>
+          </div>
+        </main>
+
+        {inspectorOpen && selectedLayer ? (
+          <InspectorPanel
+            data={data}
+            deleteLayer={deleteLayer}
+            duplicateLayer={duplicateLayer}
+            layer={selectedLayer}
+            onClose={() => setInspectorOpen(false)}
+            updateLayer={updateLayer}
+          />
         ) : null}
-      </aside>
+      </div>
     </form>
   );
 }
 
-function ControlGroup({ children, title }: { children: React.ReactNode; title: string }) {
+function ToolbarButton({
+  active,
+  icon,
+  label,
+  onClick
+}: {
+  active?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <fieldset className="grid gap-3 border-t border-line pt-4">
-      <legend className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-muted">{title}</legend>
-      {children}
-    </fieldset>
+    <button
+      className={cn(
+        "inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition",
+        active ? "border-moss bg-[#edf7f0] text-moss" : "border-line bg-white text-ink hover:bg-field"
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+}
+
+function SidePanel({ children, onClose, title }: { children: React.ReactNode; onClose: () => void; title: string }) {
+  return (
+    <aside className="absolute left-4 top-4 z-20 w-[20rem] max-w-[calc(100%-2rem)] rounded-lg border border-line bg-white p-4 shadow-soft">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
+        <button className="rounded-md p-2 text-muted hover:bg-field hover:text-ink" onClick={onClose} type="button">
+          <PanelRightClose className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid gap-4">{children}</div>
+    </aside>
+  );
+}
+
+function DesignPanel({
+  data,
+  updateData
+}: {
+  data: InvitationCardData;
+  updateData: (update: Partial<InvitationCardData>) => void;
+}) {
+  return (
+    <>
+      <div className="grid gap-2">
+        {designPresets.map((preset) => (
+          <button
+            className="rounded-md border border-line bg-field px-3 py-2 text-left text-sm font-semibold text-ink hover:border-moss"
+            key={preset.label}
+            onClick={() => updateData(preset.data)}
+            type="button"
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <ColorInput label="Background" onChange={(backgroundColor) => updateData({ backgroundColor })} value={data.backgroundColor} />
+      <ColorInput label="Accent" onChange={(accentColor) => updateData({ accentColor })} value={data.accentColor} />
+      <select
+        className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+        onChange={(event) => updateData({ texture: event.target.value as InvitationCardData["texture"] })}
+        value={data.texture}
+      >
+        <option value="paper">Paper texture</option>
+        <option value="soft">Soft light</option>
+        <option value="grid">Grid</option>
+        <option value="none">None</option>
+      </select>
+    </>
+  );
+}
+
+function SizePanel({
+  applySizePreset,
+  data,
+  updateData
+}: {
+  applySizePreset: (preset: CardSizePreset) => void;
+  data: InvitationCardData;
+  updateData: (update: Partial<InvitationCardData>) => void;
+}) {
+  return (
+    <>
+      <select
+        className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+        onChange={(event) => applySizePreset(event.target.value as CardSizePreset)}
+        value={data.sizePreset}
+      >
+        {sizePresets.map((preset) => <option key={preset.value} value={preset.value}>{preset.label}</option>)}
+        <option value="custom">Custom</option>
+      </select>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Width" max={3000} min={320} onChange={(width) => updateData({ width, sizePreset: "custom" })} value={data.width} />
+        <NumberInput label="Height" max={3000} min={320} onChange={(height) => updateData({ height, sizePreset: "custom" })} value={data.height} />
+      </div>
+    </>
+  );
+}
+
+function LayersPanel({
+  layers,
+  selectLayer,
+  selectedLayerId
+}: {
+  layers: CardLayer[];
+  selectLayer: (layerId: string) => void;
+  selectedLayerId?: string;
+}) {
+  return (
+    <div className="grid gap-2">
+      {layers.map((layer) => (
+        <button
+          className={cn(
+            "rounded-md border px-3 py-2 text-left text-sm font-semibold",
+            selectedLayerId === layer.id ? "border-moss bg-[#edf7f0] text-moss" : "border-line bg-field text-ink"
+          )}
+          key={layer.id}
+          onClick={() => selectLayer(layer.id)}
+          type="button"
+        >
+          {layer.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function InspectorPanel({
+  data,
+  deleteLayer,
+  duplicateLayer,
+  layer,
+  onClose,
+  updateLayer
+}: {
+  data: InvitationCardData;
+  deleteLayer: () => void;
+  duplicateLayer: () => void;
+  layer: CardLayer;
+  onClose: () => void;
+  updateLayer: (layerId: string, update: Partial<CardLayer>) => void;
+}) {
+  return (
+    <aside className="absolute right-4 top-4 z-20 max-h-[calc(100%-2rem)] w-[21rem] max-w-[calc(100%-2rem)] overflow-auto rounded-lg border border-line bg-white p-4 shadow-soft">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-ink">Edit layer</h2>
+          <p className="mt-1 text-xs text-muted">Drag the selected item on the card, then fine tune here.</p>
+        </div>
+        <button className="rounded-md p-2 text-muted hover:bg-field hover:text-ink" onClick={onClose} type="button">
+          <PanelRightClose className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="grid gap-3">
+        <input
+          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+          onChange={(event) => updateLayer(layer.id, { label: event.target.value })}
+          value={layer.label}
+        />
+        <textarea
+          className="min-h-24 rounded-md border border-line bg-field px-3 py-2 text-sm outline-none focus:border-moss"
+          onChange={(event) => updateLayer(layer.id, { text: event.target.value })}
+          value={layer.text ?? ""}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput label="X" max={data.width} min={0} onChange={(x) => updateLayer(layer.id, { x })} value={layer.x} />
+          <NumberInput label="Y" max={data.height} min={0} onChange={(y) => updateLayer(layer.id, { y })} value={layer.y} />
+          <NumberInput label="Width" max={data.width} min={20} onChange={(width) => updateLayer(layer.id, { width })} value={layer.width} />
+          <NumberInput label="Height" max={data.height} min={20} onChange={(height) => updateLayer(layer.id, { height })} value={layer.height} />
+        </div>
+        <NumberInput label="Text size" max={180} min={8} onChange={(fontSize) => updateLayer(layer.id, { fontSize })} value={layer.fontSize ?? 36} />
+        <select
+          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+          onChange={(event) => updateLayer(layer.id, { fontWeight: event.target.value as CardLayer["fontWeight"] })}
+          value={layer.fontWeight}
+        >
+          <option value="400">Regular</option>
+          <option value="600">Semi bold</option>
+          <option value="700">Bold</option>
+          <option value="800">Extra bold</option>
+        </select>
+        <select
+          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+          onChange={(event) => updateLayer(layer.id, { align: event.target.value as CardLayer["align"] })}
+          value={layer.align}
+        >
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+        <ColorInput label="Text" onChange={(color) => updateLayer(layer.id, { color })} value={layer.color} />
+        {layer.type === "shape" ? (
+          <>
+            <ColorInput label="Fill" onChange={(backgroundColor) => updateLayer(layer.id, { backgroundColor })} value={layer.backgroundColor ?? data.accentColor} />
+            <NumberInput label="Corner radius" max={100} min={0} onChange={(radius) => updateLayer(layer.id, { radius })} value={layer.radius ?? 8} />
+          </>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          <Button type="button" variant="secondary" onClick={duplicateLayer}><Copy className="h-4 w-4" />Copy</Button>
+          <Button disabled={data.layers.length <= 1} type="button" variant="secondary" onClick={deleteLayer}><Trash2 className="h-4 w-4" />Delete</Button>
+        </div>
+      </div>
+    </aside>
   );
 }
 
