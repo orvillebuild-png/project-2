@@ -33,9 +33,9 @@ export default async function CampaignDetailPage({
     <>
       <PageHeader
         action={<Button href="/campaigns" variant="secondary">Back to campaigns</Button>}
-        description="Edit the invitation copy, preview merge fields, and prepare pending RSVP records without sending email."
+        description={`Subject: ${campaign.email_templates.subject}`}
         eyebrow="Campaign draft"
-        title={campaign.email_templates.subject}
+        title={campaign.name ?? campaign.email_templates.name}
       />
       <div className="grid gap-5 xl:grid-cols-[1fr_24rem]">
         <div className="space-y-5">
@@ -49,7 +49,7 @@ export default async function CampaignDetailPage({
               {error ? (
                 <p className="rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
                   {error === "missing_fields"
-                    ? "Subject and message are required."
+                    ? "Campaign name, subject, and message are required."
                     : error === "no_recipients"
                       ? "Select invitees for the event before preparing recipients."
                       : decodeURIComponent(error)}
@@ -58,6 +58,15 @@ export default async function CampaignDetailPage({
               {created ? <Notice>Campaign draft created.</Notice> : null}
               {saved ? <Notice>Campaign draft saved.</Notice> : null}
               {prepared ? <Notice>Prepared {prepared} new pending recipient{prepared === "1" ? "" : "s"}.</Notice> : null}
+              <label className="grid gap-2 text-sm font-medium text-ink">
+                Campaign name
+                <input
+                  className="h-11 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+                  defaultValue={campaign.name ?? campaign.email_templates.name}
+                  name="name"
+                  required
+                />
+              </label>
               <label className="grid gap-2 text-sm font-medium text-ink">
                 Subject
                 <input
@@ -147,7 +156,9 @@ export default async function CampaignDetailPage({
               {sendLogCount} pending RSVP record{sendLogCount === 1 ? "" : "s"} prepared for this campaign.
             </p>
             <form action={prepareAction} className="mt-4">
-              <Button className="w-full" type="submit" variant="secondary">Prepare recipient log</Button>
+              <Button className="w-full" type="submit" variant="secondary">
+                {sendLogCount > 0 ? "Sync recipient log" : "Generate RSVP links"}
+              </Button>
             </form>
           </Card>
         </aside>

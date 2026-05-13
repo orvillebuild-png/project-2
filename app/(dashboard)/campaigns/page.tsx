@@ -1,6 +1,6 @@
 import { MailPlus } from "lucide-react";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -29,11 +29,11 @@ export default async function CampaignsPage() {
                 <div className="flex flex-col gap-3 rounded-lg border border-line bg-field p-4 md:flex-row md:items-center md:justify-between" key={campaign.id}>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-base font-semibold text-ink">{campaign.email_templates?.subject ?? "Untitled campaign"}</h2>
+                      <h2 className="text-base font-semibold text-ink">{campaign.name ?? campaign.email_templates?.name ?? "Untitled campaign"}</h2>
                       <Badge tone={campaign.status === "draft" ? "amber" : "green"}>{campaign.status}</Badge>
                     </div>
                     <p className="mt-2 text-sm text-muted">
-                      {campaign.events?.title ?? "No event"} · {campaign.recipient_count} recipient{campaign.recipient_count === 1 ? "" : "s"}
+                      {campaign.email_templates?.subject ?? "No subject"} - {campaign.events?.title ?? "No event"} - {campaign.recipient_count} recipient{campaign.recipient_count === 1 ? "" : "s"}
                     </p>
                   </div>
                   <Button href={`/campaigns/${campaign.id}`} variant="secondary">Open</Button>

@@ -6,6 +6,7 @@ import { createClientForServer } from "@/lib/supabase";
 
 export type CampaignListItem = {
   id: string;
+  name: string | null;
   status: "draft" | "scheduled" | "sending" | "sent";
   recipient_count: number;
   created_at?: string;
@@ -109,7 +110,7 @@ export async function listCampaigns() {
   const { org, supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_campaigns")
-    .select("id, status, recipient_count, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
+    .select("id, name, status, recipient_count, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
     .eq("org_id", org.id)
     .order("scheduled_at", { ascending: false, nullsFirst: false });
 
@@ -165,7 +166,7 @@ export async function getCampaign(campaignId: string) {
   const { org, supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_campaigns")
-    .select("id, status, recipient_count, filter_snapshot, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
+    .select("id, name, status, recipient_count, filter_snapshot, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
     .eq("org_id", org.id)
     .eq("id", campaignId)
     .maybeSingle();
@@ -187,7 +188,7 @@ export async function getCampaignPreview(campaignId: string) {
   const { supabase } = await requireOrg();
   const { data: invitee } = await supabase
     .from("attendance")
-    .select("contacts(first_name, last_name, email)")
+    .select("contacts(id, first_name, last_name, email)")
     .eq("event_id", campaign.events.id)
     .limit(1)
     .maybeSingle();
@@ -195,10 +196,20 @@ export async function getCampaignPreview(campaignId: string) {
   const contact = Array.isArray(invitee?.contacts) ? invitee?.contacts[0] : invitee?.contacts;
   const firstName = contact?.first_name || contact?.email || "Friend";
   const venue = campaign.events.locations?.name ?? "the venue";
+  const { data: sendLog } = contact?.id
+    ? await supabase
+        .from("send_log")
+        .select("rsvp_token")
+        .eq("campaign_id", campaignId)
+        .eq("contact_id", contact.id)
+        .maybeSingle()
+    : { data: null };
+  const rsvpLink = sendLog?.rsvp_token ? `/rsvp/${sendLog.rsvp_token}` : "Prepare recipient log to generate RSVP link";
   const values: Record<string, string> = {
     first_name: firstName,
     event_title: campaign.events.title,
     event_date: eventDate(campaign.events.starts_at),
+    rsvp_link: rsvpLink,
     venue
   };
 
@@ -255,7 +266,7 @@ export async function listCampaignRecipients(campaignId: string) {
 }
 
 function renderMergeFields(template: string, values: Record<string, string>) {
-  return template.replace(/\{\{\s*(first_name|event_title|event_date|venue)\s*\}\}/g, (_, key: string) => values[key] ?? "");
+  return template.replace(/\{\{\s*(first_name|event_title|event_date|venue|rsvp_link)\s*\}\}/g, (_, key: string) => values[key] ?? "");
 }
 
 export async function createCampaign(formData: FormData) {
@@ -263,10 +274,11 @@ export async function createCampaign(formData: FormData) {
 
   const { org, supabase } = await requireOrg();
   const eventId = formValue(formData, "event_id");
+  const name = formValue(formData, "name");
   const subject = formValue(formData, "subject");
   const body = formValue(formData, "body");
 
-  if (!eventId || !subject || !body) {
+  if (!eventId || !name || !subject || !body) {
     redirect("/campaigns/new?error=missing_fields");
   }
 
@@ -297,7 +309,7 @@ export async function createCampaign(formData: FormData) {
       name: `${event.title} invitation`,
       subject,
       html_body: body,
-      merge_tags: ["first_name", "event_title", "event_date", "venue"]
+      merge_tags: ["first_name", "event_title", "event_date", "venue", "rsvp_link"]
     })
     .select("id")
     .single();
@@ -312,6 +324,7 @@ export async function createCampaign(formData: FormData) {
       org_id: org.id,
       event_id: eventId,
       template_id: template.id,
+      name,
       status: "draft",
       filter_snapshot: {
         source: "event_invitees",
@@ -340,13 +353,23 @@ export async function updateCampaignDraft(campaignId: string, formData: FormData
   }
 
   const subject = formValue(formData, "subject");
+  const name = formValue(formData, "name");
   const body = formValue(formData, "body");
 
-  if (!subject || !body) {
+  if (!name || !subject || !body) {
     redirect(`/campaigns/${campaignId}?error=missing_fields`);
   }
 
   const { supabase } = await requireOrg();
+  const { error: campaignError } = await supabase
+    .from("send_campaigns")
+    .update({ name })
+    .eq("id", campaignId);
+
+  if (campaignError) {
+    redirect(`/campaigns/${campaignId}?error=${encodeURIComponent(campaignError.message)}`);
+  }
+
   const { error } = await supabase
     .from("email_templates")
     .update({
