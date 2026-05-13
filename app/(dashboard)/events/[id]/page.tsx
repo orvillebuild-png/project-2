@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { getEvent } from "@/lib/events";
+import { getEvent, publishEvent } from "@/lib/events";
 
 function eventDate(value: string | null) {
   if (!value) {
@@ -31,6 +31,8 @@ export default async function EventDetailPage({
   if (!event) {
     notFound();
   }
+
+  const publishAction = publishEvent.bind(null, event.id);
 
   return (
     <>
@@ -73,6 +75,17 @@ export default async function EventDetailPage({
             </p>
             <Button className="mt-4 w-full" href={`/events/${event.id}/invitees`} variant="secondary">Select invitees</Button>
           </Card>
+          {event.status === "draft" ? (
+            <Card className="p-5">
+              <h2 className="text-base font-semibold text-ink">Publishing</h2>
+              <p className="mt-2 text-sm leading-6 text-muted">
+                Publish when the event details are ready for invitee selection and campaigns.
+              </p>
+              <form action={publishAction} className="mt-4">
+                <Button className="w-full" type="submit">Publish event</Button>
+              </form>
+            </Card>
+          ) : null}
           <Card className="p-5">
             <h2 className="text-base font-semibold text-ink">Capacity</h2>
             <p className="mt-2 text-sm text-muted">{event.capacity ?? "Not set"}</p>

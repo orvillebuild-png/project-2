@@ -20,6 +20,12 @@ export type EventListItem = {
   } | null;
 };
 
+export type LocationOption = {
+  id: string;
+  name: string;
+  address: string | null;
+};
+
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -32,6 +38,12 @@ function nullableFormValue(formData: FormData, key: string) {
 function dateTimeValue(formData: FormData, key: string) {
   const value = nullableFormValue(formData, key);
   return value ? new Date(value).toISOString() : null;
+}
+
+function eventTypeValue(value: string) {
+  return ["single", "recurring", "multi_location"].includes(value)
+    ? value
+    : "single";
 }
 
 export async function listEvents() {
@@ -94,6 +106,28 @@ export async function getEvent(eventId: string) {
   } as EventListItem;
 }
 
+export async function listLocations() {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("locations")
+    .select("id, name, address")
+    .eq("org_id", org.id)
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as LocationOption[];
+}
+
 export async function createEvent(formData: FormData) {
   "use server";
 
@@ -113,6 +147,8 @@ export async function createEvent(formData: FormData) {
   const capacityValue = nullableFormValue(formData, "capacity");
   const capacity = capacityValue ? Number(capacityValue) : null;
   const status = formValue(formData, "status") || "draft";
+  const type = eventTypeValue(formValue(formData, "type"));
+  const recurrenceRule = type === "recurring" ? nullableFormValue(formData, "recurrence_rule") : null;
 
   if (!title) {
     redirect("/events/new?error=missing_title");
@@ -150,10 +186,11 @@ export async function createEvent(formData: FormData) {
       location_id: locationId,
       title,
       description,
-      type: "single",
+      type,
       status: status === "published" ? "published" : "draft",
       starts_at: startsAt,
       ends_at: endsAt,
+      recurrence_rule: recurrenceRule,
       capacity: Number.isFinite(capacity) ? capacity : null
     })
     .select("id")
@@ -165,4 +202,30 @@ export async function createEvent(formData: FormData) {
 
   revalidatePath("/events");
   redirect(`/events?created=${event.id}`);
+}
+
+export async function publishEvent(eventId: string) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("events")
+    .update({ status: "published" })
+    .eq("org_id", org.id)
+    .eq("id", eventId);
+
+  if (error) {
+    redirect(`/events/${eventId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/events");
+  revalidatePath(`/events/${eventId}`);
+  redirect(`/events/${eventId}?published=1`);
 }
