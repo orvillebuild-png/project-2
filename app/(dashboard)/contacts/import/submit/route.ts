@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { importMappedContactsFromFormData } from "@/lib/contacts";
+import { importMappedContactsFromFormData } from "@/lib/contact-import";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();

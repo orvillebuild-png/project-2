@@ -1,6 +1,5 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import Papa from "papaparse";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 
@@ -55,18 +54,6 @@ function formValue(formData: FormData, key: string) {
 function nullableFormValue(formData: FormData, key: string) {
   const value = formValue(formData, key);
   return value || null;
-}
-
-function mappedValue(row: Record<string, string>, mapping: Record<string, string>, field: string) {
-  const header = mapping[field];
-  const value = header ? row[header]?.trim() : "";
-  return value || null;
-}
-
-function mappedNumber(row: Record<string, string>, mapping: Record<string, string>, field: string) {
-  const value = mappedValue(row, mapping, field);
-  const number = value ? Number(value) : null;
-  return Number.isFinite(number) ? number : null;
 }
 
 export async function listContacts(filters: ContactFilters = {}) {
@@ -518,134 +505,6 @@ export async function softDeleteContact(contactId: string) {
 
   revalidatePath("/contacts");
   redirect("/contacts");
-}
-
-export async function importMappedContactsFromFormData(formData: FormData) {
-  const membership = await getCurrentOrg();
-  const org = membership?.orgs;
-
-  if (!org) {
-    return { error: "missing_org" };
-  }
-
-  const file = formData.get("file");
-  const rawMapping = formValue(formData, "csv_mapping");
-
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "invalid_payload" };
-  }
-
-  const source = file.name;
-
-  if (!source.toLowerCase().endsWith(".csv")) {
-    return { error: "csv_only" };
-  }
-
-  let mapping: Record<string, string>;
-
-  try {
-    mapping = JSON.parse(rawMapping) as Record<string, string>;
-  } catch {
-    return { error: "invalid_payload" };
-  }
-
-  if (!mapping.email) {
-    return { error: "mapping_required" };
-  }
-
-  const parsed = Papa.parse<Record<string, string>>(await file.text(), {
-    header: true,
-    skipEmptyLines: true
-  });
-
-  if (parsed.errors.length > 0) {
-    return { error: parsed.errors[0]?.message ?? "parse_failed" };
-  }
-
-  const rows = parsed.data;
-
-  const supabase = await createClientForServer();
-  const contactTypes = await listContactTypes();
-  const typeLookup = new Map(contactTypes.map((type) => [type.name.trim().toLowerCase(), type.id]));
-  const emails = rows
-    .map((row) => mappedValue(row, mapping, "email")?.toLowerCase())
-    .filter((email): email is string => Boolean(email));
-
-  if (emails.length === 0) {
-    return { error: "no_email_rows" };
-  }
-
-  const { data: existingRows, error: existingError } = await supabase
-    .from("contacts")
-    .select("email")
-    .eq("org_id", org.id)
-    .is("deleted_at", null)
-    .in("email", emails);
-
-  if (existingError) {
-    return { error: existingError.message };
-  }
-
-  const existingEmails = new Set((existingRows ?? []).map((row) => String(row.email).toLowerCase()));
-  const seenEmails = new Set<string>();
-  let duplicateRows = 0;
-  let blankEmailRows = 0;
-  const contactsToInsert = rows.flatMap((row) => {
-    const email = mappedValue(row, mapping, "email")?.toLowerCase();
-
-    if (!email) {
-      blankEmailRows += 1;
-      return [];
-    }
-
-    if (existingEmails.has(email) || seenEmails.has(email)) {
-      duplicateRows += 1;
-      return [];
-    }
-
-    seenEmails.add(email);
-    const typeName = mappedValue(row, mapping, "contact_type");
-
-    return [{
-      org_id: org.id,
-      salutation: mappedValue(row, mapping, "salutation"),
-      first_name: mappedValue(row, mapping, "first_name"),
-      last_name: mappedValue(row, mapping, "last_name"),
-      email,
-      phone: mappedValue(row, mapping, "phone"),
-      alternate_email: mappedValue(row, mapping, "alternate_email"),
-      alternate_phone: mappedValue(row, mapping, "alternate_phone"),
-      organization_name: mappedValue(row, mapping, "organization_name"),
-      contact_type_id: typeName ? typeLookup.get(typeName.trim().toLowerCase()) ?? null : null,
-      address_line1: mappedValue(row, mapping, "address_line1"),
-      address_line2: mappedValue(row, mapping, "address_line2"),
-      city: mappedValue(row, mapping, "city"),
-      state_province: mappedValue(row, mapping, "state_province"),
-      postal_code: mappedValue(row, mapping, "postal_code"),
-      country: mappedValue(row, mapping, "country"),
-      sex: mappedValue(row, mapping, "sex"),
-      age: mappedNumber(row, mapping, "age"),
-      source,
-      email_status: "pending",
-      custom_fields: {}
-    }];
-  });
-
-  if (contactsToInsert.length > 0) {
-    const { error } = await supabase.from("contacts").insert(contactsToInsert);
-
-    if (error) {
-      return { error: error.message };
-    }
-  }
-
-  revalidatePath("/contacts");
-  return {
-    blank: blankEmailRows,
-    duplicates: duplicateRows,
-    imported: contactsToInsert.length,
-    skipped: rows.length - contactsToInsert.length
-  };
 }
 
 export function contactDisplayName(contact: Pick<ContactListItem, "first_name" | "last_name" | "email">) {
