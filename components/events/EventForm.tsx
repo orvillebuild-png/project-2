@@ -8,7 +8,8 @@ import type { EventListItem, LocationOption } from "@/lib/events";
 const eventTypeOptions: Array<{ label: string; value: EventListItem["type"] }> = [
   { label: "Single", value: "single" },
   { label: "Recurring", value: "recurring" },
-  { label: "Multi-venue", value: "multi_location" }
+  { label: "Multi-location", value: "multi_location" },
+  { label: "Multi-time", value: "multi_time" }
 ];
 
 export function EventForm({
@@ -49,7 +50,7 @@ export function EventForm({
 
       <fieldset className="rounded-lg border border-line bg-field p-4">
         <legend className="px-1 text-sm font-semibold text-ink">Event type</legend>
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
+        <div className="mt-3 grid gap-2 md:grid-cols-4">
           {eventTypeOptions.map(({ value, label }) => (
             <label className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-3 text-sm font-medium text-ink" key={value}>
               <input
@@ -76,7 +77,12 @@ export function EventForm({
         ) : null}
         {eventType === "multi_location" ? (
           <p className="mt-3 rounded-md border border-line bg-white px-3 py-2 text-sm text-muted">
-            This creates the parent event now. Venue sessions will be added in the next multi-venue pass.
+            This creates the parent event. Add one session per venue from the event detail page.
+          </p>
+        ) : null}
+        {eventType === "multi_time" ? (
+          <p className="mt-3 rounded-md border border-line bg-white px-3 py-2 text-sm text-muted">
+            This creates the parent event. Add one session per time slot from the event detail page.
           </p>
         ) : null}
       </fieldset>

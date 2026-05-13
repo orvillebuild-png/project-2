@@ -26,10 +26,10 @@ export default async function EventDetailPage({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string; session_added?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; session_added?: string; session_saved?: string }>;
 }) {
   const { id } = await params;
-  const { error, saved, session_added: sessionAdded } = await searchParams;
+  const { error, saved, session_added: sessionAdded, session_saved: sessionSaved } = await searchParams;
   const [event, sessions, locations] = await Promise.all([getEvent(id), listEventSessions(id), listLocations()]);
 
   if (!event) {
@@ -38,6 +38,8 @@ export default async function EventDetailPage({
 
   const publishAction = publishEvent.bind(null, event.id);
   const addSessionAction = addEventSession.bind(null, event.id);
+  const hasSessions = event.type === "multi_location" || event.type === "multi_time";
+  const sessionLabel = event.type === "multi_time" ? "Time sessions" : "Venue sessions";
 
   return (
     <>
@@ -66,7 +68,12 @@ export default async function EventDetailPage({
           ) : null}
           {sessionAdded ? (
             <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
-              Venue session added.
+              Session added.
+            </p>
+          ) : null}
+          {sessionSaved ? (
+            <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
+              Session updated.
             </p>
           ) : null}
           <div className="flex items-center gap-2">
@@ -90,16 +97,19 @@ export default async function EventDetailPage({
               {event.locations?.address ? <p className="mt-1 text-sm text-muted">{event.locations.address}</p> : null}
             </div>
           </div>
-          {event.type === "multi_location" ? (
+          {hasSessions ? (
             <div className="mt-6">
-              <h2 className="text-base font-semibold text-ink">Venue sessions</h2>
+              <h2 className="text-base font-semibold text-ink">{sessionLabel}</h2>
               {sessions.length > 0 ? (
                 <div className="mt-3 grid gap-3">
                   {sessions.map((session) => (
                     <div className="rounded-lg border border-line bg-field p-4" key={session.id}>
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <h3 className="text-sm font-semibold text-ink">{session.title}</h3>
-                        <span className="text-xs text-muted">Capacity: {session.capacity ?? "Not set"}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-muted">Capacity: {session.capacity ?? "Not set"}</span>
+                          <Button className="h-8 px-3" href={`/events/${event.id}/sessions/${session.id}/edit`} variant="secondary">Edit</Button>
+                        </div>
                       </div>
                       <p className="mt-2 text-sm text-muted">{eventDate(session.starts_at)} - {eventDate(session.ends_at)}</p>
                       <p className="mt-1 text-sm text-muted">{session.locations?.name ?? "Venue not set"}</p>
@@ -108,7 +118,7 @@ export default async function EventDetailPage({
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-muted">No venue sessions yet.</p>
+                <p className="mt-3 text-sm text-muted">No sessions yet.</p>
               )}
               <EventSessionForm action={addSessionAction} locations={locations} />
             </div>

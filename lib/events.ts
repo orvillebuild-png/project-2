@@ -8,7 +8,7 @@ export type EventListItem = {
   title: string;
   description: string | null;
   status: "draft" | "published" | "cancelled";
-  type: "single" | "recurring" | "multi_location";
+  type: "single" | "recurring" | "multi_location" | "multi_time";
   starts_at: string | null;
   ends_at: string | null;
   capacity: number | null;
@@ -42,7 +42,7 @@ function dateTimeValue(formData: FormData, key: string) {
 }
 
 function eventTypeValue(value: string) {
-  return ["single", "recurring", "multi_location"].includes(value)
+  return ["single", "recurring", "multi_location", "multi_time"].includes(value)
     ? value
     : "single";
 }
@@ -90,6 +90,39 @@ export async function getEvent(eventId: string) {
     .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
     .eq("org_id", org.id)
     .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    ...data,
+    locations: Array.isArray(data.locations)
+      ? data.locations[0] ?? null
+      : data.locations ?? null
+  } as EventListItem;
+}
+
+export async function getEventSession(parentEventId: string, sessionId: string) {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
+    .eq("org_id", org.id)
+    .eq("parent_event_id", parentEventId)
+    .eq("id", sessionId)
     .maybeSingle();
 
   if (error) {
@@ -371,6 +404,68 @@ export async function addEventSession(parentEventId: string, formData: FormData)
 
   revalidatePath(`/events/${parentEventId}`);
   redirect(`/events/${parentEventId}?session_added=1`);
+}
+
+export async function updateEventSession(parentEventId: string, sessionId: string, formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const title = formValue(formData, "title");
+  const locationName = nullableFormValue(formData, "location_name");
+  const locationAddress = nullableFormValue(formData, "location_address");
+  const startsAt = dateTimeValue(formData, "starts_at");
+  const endsAt = dateTimeValue(formData, "ends_at");
+  const capacityValue = nullableFormValue(formData, "capacity");
+  const capacity = capacityValue ? Number(capacityValue) : null;
+
+  if (!title || !locationName) {
+    redirect(`/events/${parentEventId}/sessions/${sessionId}/edit?error=session_missing_fields`);
+  }
+
+  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+    redirect(`/events/${parentEventId}/sessions/${sessionId}/edit?error=invalid_time`);
+  }
+
+  const supabase = await createClientForServer();
+  const { data: location, error: locationError } = await supabase
+    .from("locations")
+    .insert({
+      org_id: org.id,
+      name: locationName,
+      address: locationAddress
+    })
+    .select("id")
+    .single();
+
+  if (locationError) {
+    redirect(`/events/${parentEventId}/sessions/${sessionId}/edit?error=${encodeURIComponent(locationError.message)}`);
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      location_id: location.id,
+      title,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      capacity: Number.isFinite(capacity) ? capacity : null
+    })
+    .eq("org_id", org.id)
+    .eq("parent_event_id", parentEventId)
+    .eq("id", sessionId);
+
+  if (error) {
+    redirect(`/events/${parentEventId}/sessions/${sessionId}/edit?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/events/${parentEventId}`);
+  redirect(`/events/${parentEventId}?session_saved=1`);
 }
 
 export async function publishEvent(eventId: string) {

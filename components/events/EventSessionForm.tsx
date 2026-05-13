@@ -7,13 +7,26 @@ import type { LocationOption } from "@/lib/events";
 
 export function EventSessionForm({
   action,
+  cancelHref,
+  session,
   locations
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  cancelHref?: string;
+  session?: {
+    title: string;
+    starts_at: string | null;
+    ends_at: string | null;
+    capacity: number | null;
+    locations?: {
+      name: string;
+      address: string | null;
+    } | null;
+  };
   locations: LocationOption[];
 }) {
-  const [venueName, setVenueName] = useState("");
-  const [venueAddress, setVenueAddress] = useState("");
+  const [venueName, setVenueName] = useState(session?.locations?.name ?? "");
+  const [venueAddress, setVenueAddress] = useState(session?.locations?.address ?? "");
   const locationLookup = useMemo(() => new Map(locations.map((location) => [location.name, location])), [locations]);
 
   function updateVenue(name: string) {
@@ -30,14 +43,14 @@ export function EventSessionForm({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Session name</span>
-          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" name="title" required placeholder="Morning session" />
+          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" defaultValue={session?.title ?? ""} name="title" required placeholder="Morning session" />
         </label>
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Capacity</span>
-          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" min="0" name="capacity" type="number" />
+          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" defaultValue={session?.capacity ?? ""} min="0" name="capacity" type="number" />
         </label>
       </div>
-      <EventDateTimeFields />
+      <EventDateTimeFields defaultEndsAt={session?.ends_at} defaultStartsAt={session?.starts_at} />
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Venue name</span>
@@ -66,7 +79,8 @@ export function EventSessionForm({
         </label>
       </div>
       <div>
-        <Button type="submit">Add venue session</Button>
+        <Button type="submit">{session ? "Save session" : "Add session"}</Button>
+        {cancelHref ? <Button className="ml-2" href={cancelHref} variant="secondary">Cancel</Button> : null}
       </div>
     </form>
   );
