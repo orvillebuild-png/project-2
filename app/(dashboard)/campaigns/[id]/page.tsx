@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Mail, Send } from "lucide-react";
 import { CampaignBodyEditor } from "@/components/campaigns/CampaignBodyEditor";
+import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -38,6 +39,14 @@ export default async function CampaignDetailPage({
   const testEmailAction = sendCampaignTestEmail.bind(null, campaign.id);
   const summary = campaignRsvpSummary(recipients);
   const pendingRecipients = recipients.filter((recipient) => recipient.delivery_status === "pending").length;
+  const blockedEmailRecipients = recipients.filter((recipient) => {
+    const status = recipient.contacts?.email_status;
+    return recipient.delivery_status === "pending" && (status === "invalid" || status === "disposable");
+  }).length;
+  const unverifiedEmailRecipients = recipients.filter((recipient) => {
+    const status = recipient.contacts?.email_status ?? "pending";
+    return recipient.delivery_status === "pending" && (status === "pending" || status === "unknown" || status === "risky");
+  }).length;
   const campaignTitle = campaign.name ?? campaign.email_templates.name;
   const eventTitle = campaign.events?.title ?? "the event";
 
@@ -157,6 +166,7 @@ export default async function CampaignDetailPage({
                   <thead className="bg-field text-[0.68rem] font-black uppercase tracking-[0.18em] text-muted">
                     <tr>
                       <th className="px-4 py-3">Recipient</th>
+                      <th className="px-4 py-3">Email</th>
                       <th className="px-4 py-3">Delivery</th>
                       <th className="px-4 py-3">RSVP</th>
                       <th className="px-4 py-3">Link</th>
@@ -168,6 +178,9 @@ export default async function CampaignDetailPage({
                         <td className="px-4 py-3">
                           <p className="font-semibold text-ink">{[recipient.contacts?.first_name, recipient.contacts?.last_name].filter(Boolean).join(" ") || recipient.contacts?.email}</p>
                           <p className="text-xs text-muted">{recipient.contacts?.email}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <EmailStatusBadge status={recipient.contacts?.email_status ?? "pending"} />
                         </td>
                         <td className="px-4 py-3 text-muted">{recipient.delivery_status}</td>
                         <td className="px-4 py-3">
@@ -268,16 +281,25 @@ export default async function CampaignDetailPage({
                     This campaign has been sent. New recipients can still be synced and sent later.
                   </p>
                 ) : null}
+                {blockedEmailRecipients > 0 ? (
+                  <p className="mt-3 rounded-xl border border-[#ffb8a8]/40 bg-[#ffebe7]/10 px-3 py-2 text-xs leading-5 text-[#ffd4cc]">
+                    {blockedEmailRecipients} pending recipient{blockedEmailRecipients === 1 ? " has" : "s have"} invalid or disposable email. Fix or remove them before sending.
+                  </p>
+                ) : unverifiedEmailRecipients > 0 ? (
+                  <p className="mt-3 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs leading-5 text-white/72">
+                    {unverifiedEmailRecipients} pending recipient{unverifiedEmailRecipients === 1 ? " is" : "s are"} not confirmed valid yet. You can verify contacts before sending.
+                  </p>
+                ) : null}
                 <label className="mt-4 flex items-start gap-2 text-xs leading-5 text-white/70">
                   <input
                     className="mt-1 h-4 w-4 rounded border-line text-moss focus:ring-moss"
-                    disabled={pendingRecipients === 0 || campaign.status === "sending"}
+                    disabled={pendingRecipients === 0 || blockedEmailRecipients > 0 || campaign.status === "sending"}
                     name="confirm_send"
                     type="checkbox"
                   />
                   I understand this will send real email to every pending recipient.
                 </label>
-                <Button className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={pendingRecipients === 0 || campaign.status === "sending"} type="submit">
+                <Button className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={pendingRecipients === 0 || blockedEmailRecipients > 0 || campaign.status === "sending"} type="submit">
                   Send campaign
                 </Button>
               </form>
@@ -335,7 +357,9 @@ function ErrorNotice({ error }: { error: string }) {
               ? "There are no pending recipients to send. Sync the recipient log first, or the campaign may already be sent."
               : error === "already_sending"
                 ? "This campaign is already sending."
-                : decodeURIComponent(error);
+                : error === "invalid_email_recipients"
+                  ? "Some pending recipients have invalid or disposable emails. Fix or remove those contacts before sending."
+                  : decodeURIComponent(error);
 
   return (
     <p className="rounded-xl border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">

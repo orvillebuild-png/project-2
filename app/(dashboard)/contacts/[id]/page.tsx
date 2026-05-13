@@ -5,16 +5,17 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { authMessage } from "@/lib/auth-messages";
 import { contactDisplayName, getContact, getContactHistory, listContactTypes, listTags, softDeleteContact, updateContact } from "@/lib/contacts";
+import { verifyContact } from "@/lib/email-verification";
 
 export default async function ContactDetailPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; verified?: string }>;
 }) {
   const { id } = await params;
-  const { error, saved } = await searchParams;
+  const { error, saved, verified } = await searchParams;
   const contact = await getContact(id);
 
   if (!contact) {
@@ -26,6 +27,7 @@ export default async function ContactDetailPage({
 
   const updateAction = updateContact.bind(null, id);
   const deleteAction = softDeleteContact.bind(null, id);
+  const verifyAction = verifyContact.bind(null, id);
   const message = authMessage(error) ?? (error ? decodeURIComponent(error) : null);
 
   return (
@@ -47,6 +49,11 @@ export default async function ContactDetailPage({
           {saved ? (
             <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
               Contact updated.
+            </p>
+          ) : null}
+          {verified ? (
+            <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
+              Email verification complete.
             </p>
           ) : null}
           <form action={updateAction} className="grid gap-4 md:grid-cols-2">
@@ -162,8 +169,11 @@ export default async function ContactDetailPage({
               <EmailStatusBadge status={contact.email_status} />
             </div>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Email validation will update this automatically once Reacher is connected.
+              Reacher is used when configured. Until then, the app checks syntax and domain MX records.
             </p>
+            <form action={verifyAction} className="mt-4">
+              <Button className="w-full" type="submit" variant="secondary">Verify email</Button>
+            </form>
           </Card>
           <Card className="p-5">
             <h2 className="text-base font-semibold text-ink">History</h2>

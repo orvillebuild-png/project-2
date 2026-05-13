@@ -10,15 +10,15 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Repository: GitHub project `orvillebuild-png/project-2`.
 - Billing direction: Lemon Squeezy, not Stripe.
 - Email sending: Resend for test sends and guarded campaign sends.
+- Email checking: Reacher-compatible provider adapter when configured, with syntax/MX fallback.
 
 ## Current Implemented Areas
 
 - Authentication and workspace creation.
-- Contact management with tags, contact types, filtering, bulk tagging, soft delete, and history.
+- Contact management with tags, contact types, filtering, email verification, bulk tagging, soft delete, and history.
 - CSV contact import with mapping, validation, duplicate handling, and import source tracking.
 - Event creation, editing, publish state, and session management.
 - Invitee selection from contacts.
-- Reusable invitation card designer with structured text, shape, and image/logo layers.
 - Campaign drafts from event invitees.
 - Basic campaign email design controls.
 - Recipient log generation with RSVP tokens.
@@ -27,6 +27,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Campaign RSVP summary counts.
 - Guarded Resend test email action.
 - Guarded Resend campaign send action.
+- Parked invitation card designer prototype for a later add-on feature.
 
 ## Current Design Direction
 
@@ -73,6 +74,6 @@ Campaigns now send through a separate confirmed action after recipient logs are 
 ## Known External Dependencies Not Yet Connected
 
 - Lemon Squeezy billing.
-- Email validation provider.
+- Production email validation provider credentials.
 - Address autocomplete/geocoding provider.
 - Production deployment configuration.

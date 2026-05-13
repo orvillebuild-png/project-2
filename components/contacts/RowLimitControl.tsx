@@ -8,6 +8,7 @@ type PreservedFilters = {
   search?: string;
   sex?: string;
   source?: string;
+  status?: string;
   tag?: string;
   type?: string;
 };

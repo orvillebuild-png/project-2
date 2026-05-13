@@ -45,6 +45,7 @@ export type ContactFilters = {
   tag?: string;
   type?: string;
   source?: string;
+  status?: string;
   sex?: string;
   age?: string;
   organization?: string;
@@ -118,6 +119,10 @@ export async function listContacts(filters: ContactFilters = {}) {
 
   if (filters.source) {
     query = query.eq("source", filters.source);
+  }
+
+  if (filters.status) {
+    query = query.eq("email_status", filters.status);
   }
 
   if (filters.sex) {
@@ -530,6 +535,13 @@ export async function updateContact(contactId: string, formData: FormData) {
   }
 
   const supabase = await createClientForServer();
+  const { data: existingContact } = await supabase
+    .from("contacts")
+    .select("email")
+    .eq("org_id", org.id)
+    .eq("id", contactId)
+    .maybeSingle();
+  const emailChanged = existingContact?.email !== email;
   const { error } = await supabase
     .from("contacts")
     .update({
@@ -550,7 +562,8 @@ export async function updateContact(contactId: string, formData: FormData) {
       postal_code: postalCode,
       country,
       sex,
-      age: Number.isFinite(age) ? age : null
+      age: Number.isFinite(age) ? age : null,
+      ...(emailChanged ? { email_status: "pending", last_validated_at: null } : {})
     })
     .eq("org_id", org.id)
     .eq("id", contactId);

@@ -112,6 +112,28 @@ Handling:
 - If a later recipient fails, the campaign returns to `draft` so remaining pending rows can be retried.
 - Resend requests use deterministic idempotency keys per recipient to reduce duplicate sends during retries.
 
+### Invalid or disposable campaign recipients
+
+Cause: One or more pending campaign recipients have `contacts.email_status` set to `invalid` or `disposable`.
+
+Handling:
+
+- The delivery console shows the blocked recipient count.
+- The send checkbox and send button are disabled.
+- The server action also blocks the send before calling Resend.
+- Fix the email, remove the invitee, or verify/update the contact before sending.
+
+### Email verification provider unavailable
+
+Cause: `REACHER_API_URL` is missing, the provider times out, or the provider returns an unexpected response.
+
+Handling:
+
+- Without Reacher, the app performs syntax and domain MX checks.
+- Clearly malformed addresses and domains without MX records become `invalid`.
+- MX-valid addresses become `unknown` because mailbox-level deliverability was not confirmed.
+- Provider failures are stored as `unknown` with the reason in `email_validations.reason`.
+
 ### Card asset upload failure
 
 Cause: Invalid file type, file over 5MB, missing session, or Supabase Storage policy rejection.

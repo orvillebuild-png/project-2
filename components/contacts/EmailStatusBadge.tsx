@@ -5,6 +5,7 @@ const tones = {
   pending: "amber",
   invalid: "coral",
   disposable: "coral",
+  risky: "amber",
   unknown: "gray"
 } as const;
 

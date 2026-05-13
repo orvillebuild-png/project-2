@@ -2,6 +2,7 @@ import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { Button } from "@/components/ui/Button";
 import type { ContactListItem, ContactTag } from "@/lib/contacts";
 import { bulkDeleteContacts, bulkTagContacts, contactDisplayName } from "@/lib/contacts";
+import { verifySelectedContacts } from "@/lib/email-verification";
 
 export function ContactTable({
   contacts,
@@ -35,6 +36,13 @@ export function ContactTable({
               type="submit"
             >
               Apply tag
+            </button>
+            <button
+              className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink transition hover:bg-white"
+              formAction={verifySelectedContacts}
+              type="submit"
+            >
+              Verify selected
             </button>
             <button
               className="inline-flex h-9 items-center justify-center rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink transition hover:bg-white"

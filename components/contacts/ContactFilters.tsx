@@ -11,6 +11,7 @@ export function ContactFilters({
   selectedTag,
   selectedType,
   selectedSource,
+  selectedStatus,
   selectedSex,
   selectedAge,
   selectedOrganization,
@@ -22,13 +23,14 @@ export function ContactFilters({
   selectedTag?: string;
   selectedType?: string;
   selectedSource?: string;
+  selectedStatus?: string;
   selectedSex?: string;
   selectedAge?: string;
   selectedOrganization?: string;
   search?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [showMore, setShowMore] = useState(Boolean(selectedSource || selectedSex || selectedAge || selectedOrganization));
+  const [showMore, setShowMore] = useState(Boolean(selectedSource || selectedStatus || selectedSex || selectedAge || selectedOrganization));
 
   function applyDropdownFilter() {
     formRef.current?.requestSubmit();
@@ -82,6 +84,20 @@ export function ContactFilters({
           </select>
           <select
             className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            defaultValue={selectedStatus ?? ""}
+            name="status"
+            onChange={applyDropdownFilter}
+          >
+            <option value="">All email status</option>
+            <option value="pending">Pending</option>
+            <option value="valid">Valid</option>
+            <option value="risky">Risky</option>
+            <option value="unknown">Unknown</option>
+            <option value="disposable">Disposable</option>
+            <option value="invalid">Invalid</option>
+          </select>
+          <select
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
             defaultValue={selectedSex ?? ""}
             name="sex"
             onChange={applyDropdownFilter}
@@ -117,6 +133,7 @@ export function ContactFilters({
       ) : (
         <>
           {selectedSource ? <input name="source" type="hidden" value={selectedSource} /> : null}
+          {selectedStatus ? <input name="status" type="hidden" value={selectedStatus} /> : null}
           {selectedSex ? <input name="sex" type="hidden" value={selectedSex} /> : null}
           {selectedAge ? <input name="age" type="hidden" value={selectedAge} /> : null}
           {selectedOrganization ? <input name="organization" type="hidden" value={selectedOrganization} /> : null}

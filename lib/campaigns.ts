@@ -66,6 +66,7 @@ export type CampaignRecipient = {
     first_name: string | null;
     last_name: string | null;
     email: string;
+    email_status?: string;
   } | null;
   rsvp_responses: {
     response: "yes" | "no" | "maybe";
@@ -421,7 +422,7 @@ export async function listCampaignRecipients(campaignId: string) {
   const { supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
-    .select("id, contact_id, rsvp_token, delivery_status, sent_at, contacts(first_name, last_name, email), rsvp_responses(response, responded_at)")
+    .select("id, contact_id, rsvp_token, delivery_status, sent_at, contacts(first_name, last_name, email, email_status), rsvp_responses(response, responded_at)")
     .eq("campaign_id", campaignId)
     .order("sent_at", { ascending: false, nullsFirst: false });
 
@@ -848,7 +849,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
   const { supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
-    .select("id, contact_id, rsvp_token, delivery_status, contacts(id, first_name, last_name, email)")
+    .select("id, contact_id, rsvp_token, delivery_status, contacts(id, first_name, last_name, email, email_status)")
     .eq("campaign_id", campaignId)
     .eq("delivery_status", "pending")
     .order("id", { ascending: true });
@@ -863,12 +864,18 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
       id: row.id as string,
       contact_id: row.contact_id as string,
       rsvp_token: row.rsvp_token as string,
-      contact: contact as { id: string; first_name: string | null; last_name: string | null; email: string } | null
+      contact: contact as { id: string; first_name: string | null; last_name: string | null; email: string; email_status?: string } | null
     };
   }).filter((row) => row.contact?.email);
 
   if (rows.length === 0) {
     redirect(`/campaigns/${campaignId}?error=no_pending_recipients`);
+  }
+
+  const blockedRows = rows.filter((row) => row.contact?.email_status === "invalid" || row.contact?.email_status === "disposable");
+
+  if (blockedRows.length > 0) {
+    redirect(`/campaigns/${campaignId}?error=invalid_email_recipients`);
   }
 
   const { error: sendingError } = await supabase

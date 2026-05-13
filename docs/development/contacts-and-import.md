@@ -13,6 +13,8 @@ Contacts are the central CRM records used for segmentation, event invitees, camp
 - Contact types.
 - Bulk tagging.
 - Bulk delete.
+- Single-contact email verification.
+- Bulk email verification from selected table rows.
 - Contact filtering by:
   - search
   - type
@@ -21,6 +23,7 @@ Contacts are the central CRM records used for segmentation, event invitees, camp
   - sex
   - age bracket
   - organization
+  - email verification status
 - Row count control: 20, 30, 40, 50.
 - Contact history for imported/updated records.
 
@@ -61,9 +64,26 @@ Implemented contact attributes include:
 - Import a donor list from CSV.
 - Add contacts manually after a phone call or event.
 - Tag volunteers for future campaign filtering.
+- Verify selected emails before sending a campaign.
 - Filter all contacts from a specific import file.
+- Filter contacts by email status to find risky, pending, or invalid addresses.
 - Bulk tag a selected group.
 - Soft-delete incorrect contacts without destroying related history.
+
+## Email Verification
+
+Email status values are:
+
+- `pending`
+- `valid`
+- `risky`
+- `unknown`
+- `disposable`
+- `invalid`
+
+The app supports a provider adapter for Reacher when `REACHER_API_URL` is configured. If no verification provider is configured, the app falls back to a local syntax and domain MX check. That fallback can confirm obviously invalid addresses, but it cannot prove mailbox-level deliverability, so MX-valid addresses are marked `unknown`.
+
+Verification writes a row to `email_validations`, updates `contacts.email_status`, updates `last_validated_at`, and records a `usage_events` entry for future billing/audit usage.
 
 ## Error Handling
 
@@ -71,10 +91,12 @@ Implemented contact attributes include:
 - CSV files are restricted to CSV for now.
 - Sex values are normalized to match database constraints: `male`, `female`, `other`, or null.
 - Duplicate handling prevents accidental overwrites.
+- Editing a contact email resets email status to `pending`.
 - Source is locked/automatic:
   - Manual contact: `Manual Entry`
   - Imported contact: CSV filename
 - Contact tables use horizontal scrolling to avoid clipped columns on small screens.
+- Email verification errors default to `unknown` unless the address is clearly malformed or the domain has no MX records.
 
 ## Important Files
 
@@ -89,6 +111,7 @@ Implemented contact attributes include:
 - `components/contacts/CsvImportForm.tsx`
 - `lib/contacts.ts`
 - `lib/contact-import.ts`
+- `lib/email-verification.ts`
 
 ## Current Limitations
 

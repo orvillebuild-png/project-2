@@ -32,6 +32,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - RSVP summary counts.
 - Guarded Resend test email action.
 - Guarded campaign send action.
+- Campaign send guard blocks pending recipients marked `invalid` or `disposable`.
+- Recipient table shows contact email verification status.
 - Per-recipient delivery status updates after Resend accepts an email.
 
 ## Supported Merge Fields
@@ -57,10 +59,11 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 6. User reviews the live recipient preview in the campaign studio.
 7. User generates RSVP links.
 8. The app creates `send_log` records with unique `rsvp_token` values.
-9. User confirms the campaign send.
-10. The app sends only pending recipient rows through Resend.
-11. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
-12. Campaign detail shows each recipient, delivery status, and RSVP status.
+9. User reviews recipient email statuses.
+10. User confirms the campaign send.
+11. The app sends only pending recipient rows through Resend.
+12. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
+13. Campaign detail shows each recipient, email status, delivery status, and RSVP status.
 
 ## RSVP Flow
 
@@ -91,6 +94,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Upload a campaign image or attachment into the `email-assets` Supabase Storage bucket.
 - Insert a link into selected words using markdown-style `[text](url)` syntax, which renders as an email-safe link.
 - Send one rendered test email when Resend is configured.
+- Block real sends when selected recipients are known invalid or disposable.
 - Send the real campaign to pending recipients after confirming the action.
 - Resume a partial send by sending remaining pending recipients.
 
@@ -107,6 +111,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - If email env vars are missing, the UI shows a setup error and does not attempt to send.
 - Campaign sending requires a confirmation checkbox.
 - Campaign sending only targets `send_log` rows with `delivery_status = pending`.
+- Campaign sending stops before Resend if pending recipients include `invalid` or `disposable` email statuses.
+- Pending, unknown, and risky email statuses are visible in the delivery console so the user can verify before sending.
 - Resend calls use deterministic idempotency keys per campaign recipient to reduce accidental duplicate sends during retries.
 - If a send fails partway through, already accepted recipients remain `delivered`; the campaign returns to `draft` so remaining pending recipients can be sent later.
 - If no pending recipients exist, the send action stops without calling Resend.

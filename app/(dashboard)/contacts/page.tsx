@@ -18,8 +18,10 @@ export default async function ContactsPage({
     search?: string;
     sex?: string;
     source?: string;
+    status?: string;
     tag?: string;
     type?: string;
+    verified?: string;
   }>;
 }) {
   const filters = await searchParams;
@@ -58,6 +60,7 @@ export default async function ContactsPage({
               selectedOrganization={filters.organization}
               selectedSex={filters.sex}
               selectedSource={filters.source}
+              selectedStatus={filters.status}
               selectedTag={filters.tag}
               selectedType={filters.type}
               sources={sources}
@@ -69,6 +72,11 @@ export default async function ContactsPage({
           title="Contact list"
         />
         <div className="p-5">
+          {filters.verified ? (
+            <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
+              Verified {filters.verified} selected contact{filters.verified === "1" ? "" : "s"}.
+            </p>
+          ) : null}
           <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
             <Button className="h-9 px-3" href="/contacts/tags" variant="ghost">
               <Tags className="h-4 w-4" />
@@ -91,6 +99,7 @@ export default async function ContactsPage({
                     search: filters.search,
                     sex: filters.sex,
                     source: filters.source,
+                    status: filters.status,
                     tag: filters.tag,
                     type: filters.type
                   }}
