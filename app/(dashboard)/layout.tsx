@@ -21,7 +21,7 @@ export default async function DashboardLayout({
       <Sidebar />
       <div className="min-w-0 flex-1">
         <TopBar orgName={org?.name} userEmail={user.email} />
-        <main className="px-4 py-8 md:px-8">{children}</main>
+        <main className="px-4 pb-10 pt-4 md:px-6">{children}</main>
       </div>
     </div>
   );

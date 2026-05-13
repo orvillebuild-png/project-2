@@ -8,7 +8,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-lg border border-line/90 bg-white shadow-soft ring-1 ring-ink/5", className)}>
+    <section className={cn("surface-in rounded-2xl border border-white/70 bg-white/82 shadow-soft ring-1 ring-ink/5 backdrop-blur", className)}>
       {children}
     </section>
   );
@@ -24,10 +24,10 @@ export function CardHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-line/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h2 className="text-base font-semibold text-ink">{title}</h2>
-        {description ? <p className="mt-1 text-sm text-muted">{description}</p> : null}
+        <h2 className="text-[0.95rem] font-semibold text-ink">{title}</h2>
+        {description ? <p className="mt-1 text-[0.8rem] leading-5 text-muted">{description}</p> : null}
       </div>
       {action}
     </div>

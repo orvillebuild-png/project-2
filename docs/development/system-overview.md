@@ -5,7 +5,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 ## Architecture
 
 - Frontend: Next.js App Router with React Server Components and Server Actions.
-- Styling: Tailwind CSS with a restrained operational UI.
+- Styling: Tailwind CSS with a modern warm operational UI, compact typography, yellow/black accents, rounded surfaces, and a high-density dashboard shell.
 - Database and auth: Supabase Auth, Postgres, RLS policies, and SQL migrations.
 - Repository: GitHub project `orvillebuild-png/project-2`.
 - Billing direction: Lemon Squeezy, not Stripe.
@@ -27,6 +27,14 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Campaign RSVP summary counts.
 - Guarded Resend test email action.
 - Guarded Resend campaign send action.
+
+## Current Design Direction
+
+- Warm 2026 dashboard style inspired by yellow/black product interfaces.
+- Compact font sizing to reduce the oversized/basic feel.
+- Rounded app shell with a dark labeled sidebar and pill top bar.
+- Yellow is used as the main accent, with black for primary actions and contrast.
+- Shared `Card`, `Button`, `Badge`, `PageHeader`, `Sidebar`, and `TopBar` components carry the design system across feature pages.
 
 ## Core Data Ownership
 

@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 
 const tones = {
-  green: "bg-[#edf7f0] text-moss",
-  amber: "bg-[#fff5df] text-amber",
-  coral: "bg-[#fff0ed] text-coral",
+  green: "bg-[#dcf8ea] text-[#13734a]",
+  amber: "bg-[#fff0b9] text-[#735400]",
+  coral: "bg-[#ffe1da] text-coral",
   gray: "bg-field text-muted"
 };
 
@@ -15,7 +15,7 @@ export function Badge({
   tone?: keyof typeof tones;
 }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold", tones[tone])}>
+    <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[0.7rem] font-semibold", tones[tone])}>
       {children}
     </span>
   );
