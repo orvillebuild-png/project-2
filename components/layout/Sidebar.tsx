@@ -4,7 +4,6 @@ import {
   CalendarDays,
   CreditCard,
   Home,
-  Image,
   Mail,
   Settings,
   UsersRound
@@ -18,7 +17,6 @@ const nav = [
   { href: "/contacts", label: "Contacts", icon: UsersRound },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/campaigns", label: "Campaigns", icon: Mail },
-  { href: "/cards", label: "Cards", icon: Image },
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings }
 ];

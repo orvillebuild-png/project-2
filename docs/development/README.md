@@ -9,7 +9,7 @@ This folder tracks the implementation as it exists now. Keep these documents upd
 - [Contacts and CSV Import](./contacts-and-import.md)
 - [Events and Invitees](./events-and-invitees.md)
 - [Campaigns and RSVP](./campaigns-and-rsvp.md)
-- [Cards](./cards.md)
+- [Parked Cards](./parked-cards.md)
 - [Error Handling and Operations](./error-handling-and-operations.md)
 - [Reference Resources](./reference-resources.md)
 
@@ -23,7 +23,7 @@ This folder tracks the implementation as it exists now. Keep these documents upd
 6. Campaign drafts are created from event invitees.
 7. Campaign recipient logs generate RSVP tokens.
 8. Public RSVP links record Yes, Maybe, or No responses and update event attendance state.
-9. Cards provide reusable visual invitation designs.
+9. Cards are parked as a future add-on while campaign email templates become the active design surface.
 
 ## Documentation Maintenance Rule
 

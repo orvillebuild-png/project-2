@@ -25,7 +25,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-ink/70">Project 2 workspace</p>
             <h1 className="mt-3 max-w-2xl text-[2.35rem] font-semibold leading-[1.02] text-ink md:text-[3.2rem]">
-              Operational home for events, contacts, cards, and RSVP.
+              Operational home for contacts, events, campaigns, and RSVP.
             </h1>
             <p className="mt-4 max-w-xl text-[0.9rem] leading-6 text-ink/72">
               A focused nonprofit command center with each workflow visible, testable, and ready to become production-grade.

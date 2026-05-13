@@ -16,6 +16,11 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
 - Authenticated email preview route that renders the same HTML used by Resend.
 - Full-size email preview screen.
+- Email-safe template controls:
+  - page, header, accent, text, and muted color selection
+  - font family selection
+  - hero image URL
+  - drag-adjusted image width
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
@@ -77,6 +82,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Adjust the visible email layout without editing raw HTML.
 - Compose the email in a focused studio layout instead of a single raw admin form.
 - Review the exact email HTML before sending through the side preview or full-size preview.
+- Tune the email template styling without editing raw HTML.
 - Send one rendered test email when Resend is configured.
 - Send the real campaign to pending recipients after confirming the action.
 - Resume a partial send by sending remaining pending recipients.
@@ -105,6 +111,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Merge fields are always visible as chips while writing the message.
 - Preview sits beside the editor on desktop so changes are easier to reason about.
 - Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
+- Template controls intentionally use email-client-safe inline styles.
+- Image insertion currently accepts public HTTP/HTTPS image URLs and stores the target width in template design JSON.
 - Delivery actions are grouped into one console:
   - RSVP link generation/sync
   - test email

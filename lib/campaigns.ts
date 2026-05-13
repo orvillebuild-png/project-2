@@ -34,6 +34,15 @@ export type EmailDesignData = {
   button_label: string;
   footer: string;
   show_event_details: boolean;
+  font_family: string;
+  email_bg: string;
+  header_bg: string;
+  accent_color: string;
+  text_color: string;
+  muted_color: string;
+  image_url: string;
+  image_alt: string;
+  image_width: number;
 };
 
 export type CampaignEventOption = {
@@ -82,8 +91,43 @@ function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
     intro: "We would be glad to have you with us.",
     button_label: "RSVP now",
     footer: "Thank you.",
-    show_event_details: true
+    show_event_details: true,
+    font_family: "Inter, Arial, Helvetica, sans-serif",
+    email_bg: "#f8f5eb",
+    header_bg: "#161616",
+    accent_color: "#ffca3a",
+    text_color: "#181713",
+    muted_color: "#716f66",
+    image_url: "",
+    image_alt: "",
+    image_width: 640
   };
+}
+
+function hexValue(value: string, fallback: string) {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+const allowedEmailFonts = new Set([
+  "Inter, Arial, Helvetica, sans-serif",
+  "Arial, Helvetica, sans-serif",
+  "Georgia, Times, serif",
+  "Verdana, Geneva, sans-serif",
+  "'Trebuchet MS', Arial, sans-serif"
+]);
+
+function fontValue(value: string, fallback: string) {
+  return allowedEmailFonts.has(value) ? value : fallback;
+}
+
+function numericValue(value: string, fallback: number, min: number, max: number) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(parsed)));
 }
 
 function designDataFromForm(formData: FormData): EmailDesignData {
@@ -94,7 +138,16 @@ function designDataFromForm(formData: FormData): EmailDesignData {
     intro: formValue(formData, "intro") || defaults.intro,
     button_label: formValue(formData, "button_label") || defaults.button_label,
     footer: formValue(formData, "footer") || defaults.footer,
-    show_event_details: checkboxValue(formData, "show_event_details")
+    show_event_details: checkboxValue(formData, "show_event_details"),
+    font_family: fontValue(formValue(formData, "font_family"), defaults.font_family),
+    email_bg: hexValue(formValue(formData, "email_bg"), defaults.email_bg),
+    header_bg: hexValue(formValue(formData, "header_bg"), defaults.header_bg),
+    accent_color: hexValue(formValue(formData, "accent_color"), defaults.accent_color),
+    text_color: hexValue(formValue(formData, "text_color"), defaults.text_color),
+    muted_color: hexValue(formValue(formData, "muted_color"), defaults.muted_color),
+    image_url: formValue(formData, "image_url"),
+    image_alt: formValue(formData, "image_alt"),
+    image_width: numericValue(formValue(formData, "image_width"), defaults.image_width, 180, 640)
   };
 }
 
@@ -107,7 +160,16 @@ function normalizeDesignData(value: unknown): EmailDesignData {
     intro: typeof data.intro === "string" ? data.intro : defaults.intro,
     button_label: typeof data.button_label === "string" && data.button_label.trim() ? data.button_label : defaults.button_label,
     footer: typeof data.footer === "string" ? data.footer : defaults.footer,
-    show_event_details: typeof data.show_event_details === "boolean" ? data.show_event_details : defaults.show_event_details
+    show_event_details: typeof data.show_event_details === "boolean" ? data.show_event_details : defaults.show_event_details,
+    font_family: typeof data.font_family === "string" ? fontValue(data.font_family, defaults.font_family) : defaults.font_family,
+    email_bg: typeof data.email_bg === "string" ? hexValue(data.email_bg, defaults.email_bg) : defaults.email_bg,
+    header_bg: typeof data.header_bg === "string" ? hexValue(data.header_bg, defaults.header_bg) : defaults.header_bg,
+    accent_color: typeof data.accent_color === "string" ? hexValue(data.accent_color, defaults.accent_color) : defaults.accent_color,
+    text_color: typeof data.text_color === "string" ? hexValue(data.text_color, defaults.text_color) : defaults.text_color,
+    muted_color: typeof data.muted_color === "string" ? hexValue(data.muted_color, defaults.muted_color) : defaults.muted_color,
+    image_url: typeof data.image_url === "string" ? data.image_url : defaults.image_url,
+    image_alt: typeof data.image_alt === "string" ? data.image_alt : defaults.image_alt,
+    image_width: typeof data.image_width === "number" ? numericValue(String(data.image_width), defaults.image_width, 180, 640) : defaults.image_width
   };
 }
 
@@ -288,6 +350,7 @@ export async function getCampaignPreview(campaignId: string) {
     subject: renderMergeFields(campaign.email_templates.subject, values),
     body: renderMergeFields(campaign.email_templates.html_body, values),
     design: {
+      ...campaign.email_templates.design_data,
       headline: renderMergeFields(campaign.email_templates.design_data.headline, values),
       intro: renderMergeFields(campaign.email_templates.design_data.intro, values),
       button_label: renderMergeFields(campaign.email_templates.design_data.button_label, values),
@@ -360,10 +423,19 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
+function safeImageUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 function paragraphHtml(value: string) {
   return escapeHtml(value)
     .split("\n")
-    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:#716f66;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
+    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:inherit;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
     .join("");
 }
 
@@ -394,6 +466,7 @@ function buildPreviewFromContact(
     subject: renderMergeFields(campaign.email_templates.subject, values),
     body: renderMergeFields(campaign.email_templates.html_body, values),
     design: {
+      ...campaign.email_templates.design_data,
       headline: renderMergeFields(campaign.email_templates.design_data.headline, values),
       intro: renderMergeFields(campaign.email_templates.design_data.intro, values),
       button_label: renderMergeFields(campaign.email_templates.design_data.button_label, values),
@@ -431,33 +504,42 @@ export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRs
 }
 
 export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
+  const imageUrl = safeImageUrl(preview.design.image_url);
+  const image = imageUrl
+    ? `
+      <div style="margin:0 0 24px;text-align:center;">
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(preview.design.image_alt)}" width="${preview.design.image_width}" style="display:block;width:100%;max-width:${preview.design.image_width}px;height:auto;margin:0 auto;border-radius:14px;border:1px solid #dfdccf;" />
+      </div>
+    `
+    : "";
   const eventDetails = preview.design.show_event_details
     ? `
       <div style="margin:24px 0;padding:16px;border:1px solid #dfdccf;border-radius:12px;background:#f7f4eb;">
-        <p style="margin:0 0 8px;font-weight:700;color:#181713;">${escapeHtml(preview.eventTitle)}</p>
-        <p style="margin:0 0 6px;color:#716f66;">${escapeHtml(preview.eventDate)}</p>
-        <p style="margin:0;color:#716f66;">${escapeHtml(preview.venue)}</p>
+        <p style="margin:0 0 8px;font-weight:700;color:${preview.design.text_color};">${escapeHtml(preview.eventTitle)}</p>
+        <p style="margin:0 0 6px;color:${preview.design.muted_color};">${escapeHtml(preview.eventDate)}</p>
+        <p style="margin:0;color:${preview.design.muted_color};">${escapeHtml(preview.venue)}</p>
       </div>
     `
     : "";
 
   const cta = preview.rsvpLink.startsWith("http") || preview.rsvpLink.startsWith("/")
-    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:999px;background:#1f6b5d;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
+    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:999px;background:${preview.design.accent_color};color:#161616;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
     : "";
 
   return `
-    <div style="margin:0;padding:36px;background:#f8f5eb;font-family:Inter,Arial,Helvetica,sans-serif;">
+    <div style="margin:0;padding:36px;background:${preview.design.email_bg};font-family:${preview.design.font_family};">
       <div style="max-width:640px;margin:0 auto;border:1px solid #dfdccf;border-radius:18px;overflow:hidden;background:#ffffff;">
-        <div style="padding:30px 28px;background:#161616;color:#ffffff;">
-          <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:#ffca3a;">Invitation</p>
+        <div style="padding:30px 28px;background:${preview.design.header_bg};color:#ffffff;">
+          <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:${preview.design.accent_color};">Invitation</p>
           <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:700;">${escapeHtml(preview.design.headline)}</h1>
         </div>
-        <div style="padding:28px;">
-          ${preview.design.intro ? `<p style="margin:0 0 18px;color:#716f66;line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
+        <div style="padding:28px;color:${preview.design.muted_color};">
+          ${image}
+          ${preview.design.intro ? `<p style="margin:0 0 18px;color:${preview.design.muted_color};line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
           ${paragraphHtml(preview.body)}
           ${eventDetails}
           ${cta}
-          ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #dfdccf;color:#716f66;font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
+          ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #dfdccf;color:${preview.design.muted_color};font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
         </div>
       </div>
     </div>

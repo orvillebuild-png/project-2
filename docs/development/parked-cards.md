@@ -1,4 +1,17 @@
-# Cards
+# Parked Feature: Cards
+
+## Status
+
+Cards are parked and pushed back as a future add-on. They are no longer part of the active core navigation or near-term MVP focus.
+
+Current core focus:
+
+- Contact management
+- Email verification
+- Email campaign management
+- Events and RSVP
+
+The implementation notes below are preserved so this feature can be revived later without losing context.
 
 ## Purpose
 

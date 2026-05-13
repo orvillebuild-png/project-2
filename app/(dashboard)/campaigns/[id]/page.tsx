@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { Eye, Mail, Send, Sparkles } from "lucide-react";
+import { Mail, Send, Sparkles } from "lucide-react";
+import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -122,17 +123,17 @@ export default async function CampaignDetailPage({
                   icon={<Sparkles className="h-4 w-4" />}
                   title="Message"
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-start gap-2">
                   {mergeFields.map((field) => (
-                    <span className="rounded-full border border-line bg-field px-3 py-1 text-[0.72rem] font-semibold text-muted" key={field}>
+                    <span className="inline-flex h-7 items-center rounded-full border border-line bg-field px-3 text-[0.72rem] font-semibold text-muted" key={field}>
                       {field}
                     </span>
                   ))}
                 </div>
-                <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
+                <label className="mx-auto grid w-full max-w-2xl gap-2 text-[0.78rem] font-semibold text-ink">
                   Body
                   <textarea
-                    className="min-h-72 rounded-2xl border border-line bg-field/70 px-4 py-4 text-[0.86rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
+                    className="min-h-80 rounded-2xl border border-line bg-field/70 px-4 py-4 text-[0.86rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
                     defaultValue={campaign.email_templates.html_body}
                     name="body"
                     required
@@ -140,56 +141,7 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <section className="grid gap-4 rounded-2xl border border-line/90 bg-[#fff8dc]/72 p-4 md:grid-cols-2">
-                <SectionTitle
-                  description="These fields shape the rendered email preview and the real email sent through Resend."
-                  icon={<Eye className="h-4 w-4" />}
-                  title="Design direction"
-                />
-                <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
-                  Email headline
-                  <input
-                    className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                    defaultValue={campaign.email_templates.design_data.headline}
-                    name="headline"
-                    required
-                  />
-                </label>
-                <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
-                  Intro copy
-                  <textarea
-                    className="min-h-24 rounded-xl border border-line bg-white/90 px-3 py-3 text-[0.85rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                    defaultValue={campaign.email_templates.design_data.intro}
-                    name="intro"
-                  />
-                </label>
-                <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-                  RSVP button label
-                  <input
-                    className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                    defaultValue={campaign.email_templates.design_data.button_label}
-                    name="button_label"
-                    required
-                  />
-                </label>
-                <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-                  Footer
-                  <input
-                    className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                    defaultValue={campaign.email_templates.design_data.footer}
-                    name="footer"
-                  />
-                </label>
-                <label className="flex items-center gap-2 rounded-xl border border-line bg-white/78 px-3 py-3 text-[0.82rem] font-semibold text-ink md:col-span-2">
-                  <input
-                    className="h-4 w-4 rounded border-line text-moss focus:ring-moss"
-                    defaultChecked={campaign.email_templates.design_data.show_event_details}
-                    name="show_event_details"
-                    type="checkbox"
-                  />
-                  Show event details block
-                </label>
-              </section>
+              <EmailTemplateControls design={campaign.email_templates.design_data} />
 
               <div className="flex justify-end">
                 <Button type="submit">Save changes</Button>
