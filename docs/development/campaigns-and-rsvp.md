@@ -23,6 +23,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
   - drag-adjusted image width
 - Shared campaign body editor for new drafts and later edits.
 - Body editor toolbar for undo, redo, bold, italic, underline-style strong text, link insertion, lists, quote snippets, and emoji insertion.
+- Emoji picker uses `emoji-picker-react` with client-only dynamic loading.
 - Sender identity fields for from name and from email.
 - File attachment upload and attachment link rendering.
 - Merge-field preview.

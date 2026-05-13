@@ -35,6 +35,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Rounded app shell with a dark labeled sidebar and pill top bar.
 - Yellow is used as the main accent, with black for primary actions and contrast.
 - Shared `Card`, `Button`, `Badge`, `PageHeader`, `Sidebar`, and `TopBar` components carry the design system across feature pages.
+- App typography uses `next/font` to self-host Inter and avoid external browser font requests.
 
 ## Core Data Ownership
 

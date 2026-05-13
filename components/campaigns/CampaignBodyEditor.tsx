@@ -1,9 +1,13 @@
 "use client";
 
 import { Bold, Italic, Link, List, ListOrdered, Quote, Redo2, Smile, Strikethrough, Underline, Undo2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
+import type { EmojiClickData } from "emoji-picker-react";
 
-const emojis = ["🙂", "❤️", "🎉", "🙏", "✨", "📅", "📍", "💛"];
+const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
+  ssr: false
+});
 
 export function CampaignBodyEditor({
   defaultValue,
@@ -130,12 +134,19 @@ export function CampaignBodyEditor({
           <div className="relative">
             <ToolButton label="Emoji" onClick={() => setShowEmoji((open) => !open)}><Smile className="h-4 w-4" /></ToolButton>
             {showEmoji ? (
-              <div className="absolute left-0 top-10 z-10 grid grid-cols-4 gap-1 rounded-2xl border border-line bg-white p-2 shadow-soft">
-                {emojis.map((emoji) => (
-                  <button className="h-8 w-8 rounded-full hover:bg-field" key={emoji} onClick={() => insertText(emoji)} type="button">
-                    {emoji}
-                  </button>
-                ))}
+              <div className="absolute left-0 top-10 z-10 rounded-2xl border border-line bg-white p-2 shadow-soft">
+                <EmojiPicker
+                  height={360}
+                  lazyLoadEmojis
+                  onEmojiClick={(emoji: EmojiClickData) => {
+                    insertText(emoji.emoji);
+                    setShowEmoji(false);
+                  }}
+                  previewConfig={{ showPreview: false }}
+                  searchPlaceholder="Search emoji"
+                  skinTonesDisabled={false}
+                  width={320}
+                />
               </div>
             ) : null}
           </div>
