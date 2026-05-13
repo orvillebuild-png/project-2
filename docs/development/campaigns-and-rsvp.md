@@ -16,6 +16,8 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
+- RSVP summary counts.
+- Guarded Resend test email action.
 
 ## Supported Merge Fields
 
@@ -62,7 +64,9 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Generate a recipient-specific RSVP link.
 - Test RSVP response loop without email sending.
 - Track pending/yes/maybe/no response status from the campaign page.
+- View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
+- Send one rendered test email when Resend is configured.
 
 ## Error Handling
 
@@ -73,6 +77,8 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - RSVP token lookup returns 404 if token is invalid.
 - RSVP submission only accepts `yes`, `maybe`, or `no`.
 - Public RSVP RPCs expose only token-scoped lookup and token-scoped response submission.
+- Test email sending requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
+- If email env vars are missing, the UI shows a setup error and does not attempt to send.
 
 ## Important Files
 
@@ -86,7 +92,9 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 ## Current Limitations
 
 - No real email sending yet.
-- Delivery status remains `pending` until an email provider is connected.
+- Campaign-wide sending is not connected yet.
+- Delivery status remains `pending` until campaign send is implemented.
+- Test email sending is available only when Resend env vars are configured.
 - Email body is still plain text-style editing inside a structured layout.
 - No reusable drag-and-drop visual template builder yet.
 - RSVP link is rendered as a CTA in preview, but real email sending is not connected yet.

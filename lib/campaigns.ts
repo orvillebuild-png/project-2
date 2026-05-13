@@ -59,6 +59,14 @@ export type CampaignRecipient = {
   } | null;
 };
 
+export type CampaignRsvpSummary = {
+  pending: number;
+  yes: number;
+  maybe: number;
+  no: number;
+  total: number;
+};
+
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -334,6 +342,78 @@ function renderMergeFields(template: string, values: Record<string, string>) {
   return template.replace(/\{\{\s*(first_name|event_title|event_date|venue|rsvp_link)\s*\}\}/g, (_, key: string) => values[key] ?? "");
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function paragraphHtml(value: string) {
+  return escapeHtml(value)
+    .split("\n")
+    .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:#42526b;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
+    .join("");
+}
+
+export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRsvpSummary {
+  return recipients.reduce(
+    (summary, recipient) => {
+      const response = recipient.rsvp_responses?.response;
+
+      if (response === "yes") {
+        summary.yes += 1;
+      } else if (response === "maybe") {
+        summary.maybe += 1;
+      } else if (response === "no") {
+        summary.no += 1;
+      } else {
+        summary.pending += 1;
+      }
+
+      summary.total += 1;
+      return summary;
+    },
+    { pending: 0, yes: 0, maybe: 0, no: 0, total: 0 }
+  );
+}
+
+function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
+  const eventDetails = preview.design.show_event_details
+    ? `
+      <div style="margin:24px 0;padding:16px;border:1px solid #d7dee8;border-radius:8px;background:#f7f9f8;">
+        <p style="margin:0 0 8px;font-weight:700;color:#102033;">${escapeHtml(preview.eventTitle)}</p>
+        <p style="margin:0 0 6px;color:#42526b;">${escapeHtml(preview.eventDate)}</p>
+        <p style="margin:0;color:#42526b;">${escapeHtml(preview.venue)}</p>
+      </div>
+    `
+    : "";
+
+  const cta = preview.rsvpLink.startsWith("http") || preview.rsvpLink.startsWith("/")
+    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:6px;background:#39705f;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
+    : "";
+
+  return `
+    <div style="margin:0;padding:28px;background:#fbfaf7;font-family:Arial,Helvetica,sans-serif;">
+      <div style="max-width:640px;margin:0 auto;border:1px solid #d7dee8;border-radius:10px;overflow:hidden;background:#ffffff;">
+        <div style="padding:28px;background:#39705f;color:#ffffff;">
+          <p style="margin:0 0 10px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.82;">Invitation</p>
+          <h1 style="margin:0;font-size:28px;line-height:1.25;">${escapeHtml(preview.design.headline)}</h1>
+        </div>
+        <div style="padding:28px;">
+          ${preview.design.intro ? `<p style="margin:0 0 18px;color:#42526b;line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
+          ${paragraphHtml(preview.body)}
+          ${eventDetails}
+          ${cta}
+          ${preview.design.footer ? `<p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #e5e8ee;color:#667085;font-size:12px;line-height:1.5;">${escapeHtml(preview.design.footer)}</p>` : ""}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 export async function createCampaign(formData: FormData) {
   "use server";
 
@@ -455,6 +535,60 @@ export async function updateCampaignDraft(campaignId: string, formData: FormData
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${campaignId}`);
   redirect(`/campaigns/${campaignId}?saved=1`);
+}
+
+export async function sendCampaignTestEmail(campaignId: string, formData: FormData) {
+  "use server";
+
+  await getCampaign(campaignId);
+
+  const to = formValue(formData, "test_to");
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  if (!to) {
+    redirect(`/campaigns/${campaignId}?error=missing_test_email`);
+  }
+
+  if (!resendApiKey || !from) {
+    redirect(`/campaigns/${campaignId}?error=email_not_configured`);
+  }
+
+  const preview = await getCampaignPreview(campaignId);
+
+  if (!preview) {
+    redirect(`/campaigns/${campaignId}?error=no_preview`);
+  }
+
+  const html = renderCampaignEmailHtml({
+    ...preview,
+    rsvpLink: preview.rsvpLink.startsWith("/")
+      ? `${appUrl.replace(/\/$/, "")}${preview.rsvpLink}`
+      : preview.rsvpLink
+  });
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: `[Test] ${preview.subject}`,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    redirect(`/campaigns/${campaignId}?error=${encodeURIComponent(message || "Failed to send test email")}`);
+  }
+
+  revalidatePath(`/campaigns/${campaignId}`);
+  redirect(`/campaigns/${campaignId}?test_sent=1`);
 }
 
 export async function prepareCampaignRecipients(campaignId: string) {

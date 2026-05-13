@@ -23,6 +23,8 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Recipient log generation with RSVP tokens.
 - Public RSVP page by token.
 - Campaign recipient RSVP status tracking.
+- Campaign RSVP summary counts.
+- Guarded Resend test email action.
 
 ## Core Data Ownership
 

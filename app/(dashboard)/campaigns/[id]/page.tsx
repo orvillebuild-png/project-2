@@ -4,22 +4,24 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, updateCampaignDraft } from "@/lib/campaigns";
+import { requireUser } from "@/lib/auth";
+import { campaignRsvpSummary, getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaignTestEmail, updateCampaignDraft } from "@/lib/campaigns";
 
 export default async function CampaignDetailPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string }>;
+  searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string; test_sent?: string }>;
 }) {
   const { id } = await params;
-  const [{ created, error, prepared, saved }, campaign, preview, sendLogCount, recipients] = await Promise.all([
+  const [{ created, error, prepared, saved, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user] = await Promise.all([
     searchParams,
     getCampaign(id),
     getCampaignPreview(id),
     getCampaignSendLogCount(id),
-    listCampaignRecipients(id)
+    listCampaignRecipients(id),
+    requireUser()
   ]);
 
   if (!campaign || !campaign.email_templates) {
@@ -28,6 +30,8 @@ export default async function CampaignDetailPage({
 
   const updateAction = updateCampaignDraft.bind(null, campaign.id);
   const prepareAction = prepareCampaignRecipients.bind(null, campaign.id);
+  const testEmailAction = sendCampaignTestEmail.bind(null, campaign.id);
+  const summary = campaignRsvpSummary(recipients);
 
   return (
     <>
@@ -52,12 +56,17 @@ export default async function CampaignDetailPage({
                     ? "Campaign name, subject, and message are required."
                     : error === "no_recipients"
                       ? "Select invitees for the event before preparing recipients."
+                      : error === "email_not_configured"
+                        ? "Email is not configured yet. Add RESEND_API_KEY and RESEND_FROM_EMAIL to enable test sends."
+                        : error === "missing_test_email"
+                          ? "Enter an email address for the test send."
                       : decodeURIComponent(error)}
                 </p>
               ) : null}
               {created ? <Notice>Campaign draft created.</Notice> : null}
               {saved ? <Notice>Campaign draft saved.</Notice> : null}
               {prepared ? <Notice>Prepared {prepared} new pending recipient{prepared === "1" ? "" : "s"}.</Notice> : null}
+              {testSent ? <Notice>Test email sent.</Notice> : null}
               <label className="grid gap-2 text-sm font-medium text-ink">
                 Campaign name
                 <input
@@ -134,6 +143,22 @@ export default async function CampaignDetailPage({
                 <Button type="submit">Save changes</Button>
               </div>
             </form>
+          </Card>
+          <Card>
+            <CardHeader description="Live response counts from prepared recipients." title="RSVP summary" />
+            <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+              {[
+                { label: "Yes", value: summary.yes, tone: "green" as const },
+                { label: "Maybe", value: summary.maybe, tone: "amber" as const },
+                { label: "No", value: summary.no, tone: "coral" as const },
+                { label: "Pending", value: summary.pending, tone: "gray" as const }
+              ].map(({ label, value, tone }) => (
+                <div className="rounded-lg border border-line bg-field p-4" key={label}>
+                  <Badge tone={tone}>{label}</Badge>
+                  <p className="mt-3 text-2xl font-semibold text-ink">{value}</p>
+                </div>
+              ))}
+            </div>
           </Card>
           <Card>
             <CardHeader
@@ -225,6 +250,22 @@ export default async function CampaignDetailPage({
               <Button className="w-full" type="submit" variant="secondary">
                 {sendLogCount > 0 ? "Sync recipient log" : "Generate RSVP links"}
               </Button>
+            </form>
+          </Card>
+          <Card className="p-5">
+            <h2 className="text-base font-semibold text-ink">Test email</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Sends the rendered campaign preview to one address when Resend is configured.
+            </p>
+            <form action={testEmailAction} className="mt-4 space-y-3">
+              <input
+                className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+                defaultValue={user.email ?? ""}
+                name="test_to"
+                placeholder="you@example.com"
+                type="email"
+              />
+              <Button className="w-full" type="submit" variant="secondary">Send test email</Button>
             </form>
           </Card>
         </aside>
