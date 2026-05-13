@@ -6,6 +6,7 @@ type ButtonProps = {
   href?: string;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
+  onClick?: () => void;
   type?: "button" | "submit";
 };
 
@@ -20,6 +21,7 @@ export function Button({
   href,
   variant = "primary",
   className,
+  onClick,
   type = "button"
 }: ButtonProps) {
   const classes = cn(
@@ -37,7 +39,7 @@ export function Button({
   }
 
   return (
-    <button className={classes} type={type}>
+    <button className={classes} onClick={onClick} type={type}>
       {children}
     </button>
   );

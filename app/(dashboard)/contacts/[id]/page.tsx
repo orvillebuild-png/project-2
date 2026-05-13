@@ -4,7 +4,7 @@ import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { authMessage } from "@/lib/auth-messages";
-import { contactDisplayName, getContact, listContactTypes, listTags, softDeleteContact, updateContact } from "@/lib/contacts";
+import { contactDisplayName, getContact, getContactHistory, listContactTypes, listTags, softDeleteContact, updateContact } from "@/lib/contacts";
 
 export default async function ContactDetailPage({
   params,
@@ -21,7 +21,7 @@ export default async function ContactDetailPage({
     notFound();
   }
 
-  const [contactTypes, tags] = await Promise.all([listContactTypes(), listTags()]);
+  const [contactTypes, tags, history] = await Promise.all([listContactTypes(), listTags(), getContactHistory(id)]);
   const activeTagIds = new Set((contact.contact_tags ?? []).map((tag) => tag.id));
 
   const updateAction = updateContact.bind(null, id);
@@ -164,6 +164,32 @@ export default async function ContactDetailPage({
             <p className="mt-3 text-sm leading-6 text-muted">
               Email validation will update this automatically once Reacher is connected.
             </p>
+          </Card>
+          <Card className="p-5">
+            <h2 className="text-base font-semibold text-ink">History</h2>
+            {history.length > 0 ? (
+              <div className="mt-3 space-y-3">
+                {history.map((item) => (
+                  <div className="rounded-md border border-line bg-field p-3" key={item.id}>
+                    <p className="text-sm font-semibold text-ink">
+                      {item.action === "import_created" ? "Created by import" : item.action === "import_updated" ? "Updated by import" : "Updated"}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      {new Intl.DateTimeFormat("en", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit"
+                      }).format(new Date(item.created_at))}
+                    </p>
+                    {item.source ? <p className="mt-1 text-xs text-muted">Source: {item.source}</p> : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-muted">No history recorded yet.</p>
+            )}
           </Card>
           <Card className="p-5">
             <h2 className="text-base font-semibold text-ink">Danger zone</h2>

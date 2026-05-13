@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
   redirectUrl.searchParams.set("skipped", String(result.skipped));
   redirectUrl.searchParams.set("duplicates", String(result.duplicates));
   redirectUrl.searchParams.set("blank", String(result.blank));
+  redirectUrl.searchParams.set("updated", String(result.updated));
 
   return NextResponse.redirect(redirectUrl);
 }

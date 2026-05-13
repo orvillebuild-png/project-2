@@ -4,8 +4,19 @@ import Papa from "papaparse";
 import { Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import type { ContactTag } from "@/lib/contacts";
 
 type CsvRow = Record<string, string>;
+type DuplicateContact = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  alternate_email: string | null;
+  alternate_phone: string | null;
+  organization_name: string | null;
+};
 
 type ImportField = {
   key: string;
@@ -34,6 +45,15 @@ const fields: ImportField[] = [
   { key: "age", label: "Age", candidates: ["age"] }
 ];
 
+const duplicateFields = [
+  { key: "first_name", label: "First name" },
+  { key: "last_name", label: "Last name" },
+  { key: "phone", label: "Phone" },
+  { key: "alternate_email", label: "Alternate email" },
+  { key: "alternate_phone", label: "Alternate phone" },
+  { key: "organization_name", label: "Organization" }
+];
+
 function normalizeHeader(header: string) {
   return header.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
@@ -54,19 +74,82 @@ export function CsvImportForm({
   duplicates,
   error,
   imported,
-  skipped
+  skipped,
+  tags,
+  updated
 }: {
   blank?: string;
   duplicates?: string;
   error?: string;
   imported?: string;
   skipped?: string;
+  tags: ContactTag[];
+  updated?: string;
 }) {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [duplicateContacts, setDuplicateContacts] = useState<DuplicateContact[]>([]);
+  const [duplicateResolutions, setDuplicateResolutions] = useState<Record<string, string[]>>({});
   const [parseError, setParseError] = useState<string | null>(null);
+  const [duplicateStatus, setDuplicateStatus] = useState<string | null>(null);
   const mappedCount = useMemo(() => Object.values(mapping).filter(Boolean).length, [mapping]);
+
+  function mappedRowValue(row: CsvRow, field: string) {
+    const header = mapping[field];
+    return header ? row[header]?.trim() ?? "" : "";
+  }
+
+  function rowByEmail(email: string) {
+    return rows.find((row) => mappedRowValue(row, "email").toLowerCase() === email.toLowerCase());
+  }
+
+  async function checkDuplicates() {
+    setDuplicateStatus(null);
+    setDuplicateContacts([]);
+    setDuplicateResolutions({});
+
+    const emails = rows
+      .map((row) => mappedRowValue(row, "email").toLowerCase())
+      .filter(Boolean);
+
+    if (emails.length === 0) {
+      setDuplicateStatus("Map the email column before checking duplicates.");
+      return;
+    }
+
+    const response = await fetch("/contacts/import/duplicates", {
+      body: JSON.stringify({ emails }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST"
+    });
+
+    if (!response.ok) {
+      setDuplicateStatus("Duplicate check failed.");
+      return;
+    }
+
+    const payload = await response.json() as { contacts: DuplicateContact[] };
+    setDuplicateContacts(payload.contacts);
+    setDuplicateStatus(payload.contacts.length === 0 ? "No duplicate emails found." : `${payload.contacts.length} duplicate email${payload.contacts.length === 1 ? "" : "s"} found.`);
+  }
+
+  function toggleDuplicateField(email: string, field: string, checked: boolean) {
+    setDuplicateResolutions((current) => {
+      const selected = new Set(current[email] ?? []);
+
+      if (checked) {
+        selected.add(field);
+      } else {
+        selected.delete(field);
+      }
+
+      return {
+        ...current,
+        [email]: Array.from(selected)
+      };
+    });
+  }
 
   function handleFileChange(file?: File) {
     setParseError(null);
@@ -96,6 +179,9 @@ export function CsvImportForm({
         setHeaders(parsedHeaders);
         setRows(result.data);
         setMapping(createDefaultMapping(parsedHeaders));
+        setDuplicateContacts([]);
+        setDuplicateResolutions({});
+        setDuplicateStatus(null);
       },
       error(errorResult) {
         setParseError(errorResult.message);
@@ -125,7 +211,7 @@ export function CsvImportForm({
       ) : null}
       {imported ? (
         <div className="mx-auto mt-4 max-w-md rounded-md border border-moss/30 bg-moss/10 px-3 py-2 text-sm text-moss">
-          Imported {imported} contact{imported === "1" ? "" : "s"}. Skipped {skipped ?? "0"}
+          Imported {imported} contact{imported === "1" ? "" : "s"}. Updated {updated ?? "0"}. Skipped {skipped ?? "0"}
           {duplicates ? `, duplicates ${duplicates}` : ""}
           {blank ? `, blank emails ${blank}` : ""}.
         </div>
@@ -147,6 +233,21 @@ export function CsvImportForm({
       {rows.length > 0 ? (
         <>
           <input name="csv_mapping" type="hidden" value={JSON.stringify(mapping)} />
+          <input name="duplicate_resolutions" type="hidden" value={JSON.stringify(duplicateResolutions)} />
+
+          {tags.length > 0 ? (
+            <fieldset className="mt-8 rounded-lg border border-line bg-white p-4">
+              <legend className="px-1 text-sm font-semibold text-ink">Apply tags to imported contacts</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {tags.map((tag) => (
+                  <label className="flex items-center gap-2 rounded-md border border-line bg-field px-3 py-2 text-sm text-ink" key={tag.id}>
+                    <input className="h-4 w-4 accent-moss" name="tag_ids" type="checkbox" value={tag.id} />
+                    {tag.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
 
           <div className="mt-8 grid gap-3 md:grid-cols-2">
             {fields.map((field) => (
@@ -167,6 +268,55 @@ export function CsvImportForm({
                 </select>
               </label>
             ))}
+          </div>
+
+          <div className="mt-8 rounded-lg border border-line bg-white p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-ink">Duplicate handling</h3>
+                <p className="mt-1 text-sm text-muted">Check matching emails, then choose which CSV fields should update existing contacts.</p>
+              </div>
+              <Button type="button" variant="secondary" onClick={checkDuplicates}>Check duplicates</Button>
+            </div>
+            {duplicateStatus ? <p className="mt-3 text-sm text-muted">{duplicateStatus}</p> : null}
+            {duplicateContacts.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {duplicateContacts.map((contact) => {
+                  const row = rowByEmail(contact.email);
+
+                  return (
+                    <div className="rounded-lg border border-line bg-field p-3" key={contact.id}>
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-sm font-semibold text-ink">{contact.email}</p>
+                        <p className="text-xs text-muted">Unchecked fields keep the current contact value.</p>
+                      </div>
+                      <div className="mt-3 grid gap-2 md:grid-cols-2">
+                        {duplicateFields.map((field) => {
+                          const csvValue = row ? mappedRowValue(row, field.key) : "";
+                          const currentValue = String(contact[field.key as keyof DuplicateContact] ?? "");
+
+                          return (
+                            <label className="rounded-md border border-line bg-white p-3 text-sm" key={field.key}>
+                              <span className="flex items-center gap-2 font-semibold text-ink">
+                                <input
+                                  className="h-4 w-4 accent-moss"
+                                  checked={(duplicateResolutions[contact.email] ?? []).includes(field.key)}
+                                  onChange={(event) => toggleDuplicateField(contact.email, field.key, event.target.checked)}
+                                  type="checkbox"
+                                />
+                                Use CSV {field.label}
+                              </span>
+                              <span className="mt-2 block text-xs text-muted">Current: {currentValue || "blank"}</span>
+                              <span className="mt-1 block text-xs text-muted">CSV: {csvValue || "blank"}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-8 overflow-hidden rounded-lg border border-line bg-white">

@@ -5,18 +5,19 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { listContacts, listContactTypes, listTags } from "@/lib/contacts";
+import { listContacts, listContactSources, listContactTypes, listTags } from "@/lib/contacts";
 
 export default async function ContactsPage({
   searchParams
 }: {
-  searchParams: Promise<{ tag?: string; type?: string; search?: string }>;
+  searchParams: Promise<{ tag?: string; type?: string; source?: string; search?: string }>;
 }) {
   const filters = await searchParams;
-  const [contacts, contactTypes, tags] = await Promise.all([
+  const [contacts, contactTypes, tags, sources] = await Promise.all([
     listContacts(filters),
     listContactTypes(),
-    listTags()
+    listTags(),
+    listContactSources()
   ]);
 
   return (
@@ -43,8 +44,10 @@ export default async function ContactsPage({
           action={
             <ContactFilters
               search={filters.search}
+              selectedSource={filters.source}
               selectedTag={filters.tag}
               selectedType={filters.type}
+              sources={sources}
               tags={tags}
               types={contactTypes}
             />

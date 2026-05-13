@@ -1,13 +1,15 @@
 import { CsvImportForm } from "@/components/contacts/CsvImportForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
+import { listTags } from "@/lib/contacts";
 
 export default async function ImportContactsPage({
   searchParams
 }: {
-  searchParams: Promise<{ blank?: string; duplicates?: string; error?: string; imported?: string; skipped?: string }>;
+  searchParams: Promise<{ blank?: string; duplicates?: string; error?: string; imported?: string; skipped?: string; updated?: string }>;
 }) {
   const params = await searchParams;
+  const tags = await listTags();
   const errorMessages: Record<string, string> = {
     invalid_payload: "Upload and map a CSV file before importing.",
     csv_only: "Only .csv files are supported right now.",
@@ -30,6 +32,8 @@ export default async function ImportContactsPage({
           error={params.error ? errorMessages[params.error] ?? params.error : undefined}
           imported={params.imported}
           skipped={params.skipped}
+          tags={tags}
+          updated={params.updated}
         />
       </Card>
     </>

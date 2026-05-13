@@ -44,7 +44,16 @@ export type ContactTag = {
 export type ContactFilters = {
   tag?: string;
   type?: string;
+  source?: string;
   search?: string;
+};
+
+export type ContactHistoryItem = {
+  id: string;
+  action: string;
+  source: string | null;
+  changes: Record<string, unknown>;
+  created_at: string;
 };
 
 function formValue(formData: FormData, key: string) {
@@ -94,6 +103,10 @@ export async function listContacts(filters: ContactFilters = {}) {
 
   if (filters.type) {
     query = query.eq("contact_type_id", filters.type);
+  }
+
+  if (filters.source) {
+    query = query.eq("source", filters.source);
   }
 
   if (filters.search) {
@@ -163,6 +176,54 @@ export async function listTags() {
   }
 
   return (data ?? []) as ContactTag[];
+}
+
+export async function listContactSources() {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("source")
+    .eq("org_id", org.id)
+    .is("deleted_at", null)
+    .not("source", "is", null)
+    .order("source", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Array.from(new Set((data ?? []).map((row) => row.source as string).filter(Boolean)));
+}
+
+export async function getContactHistory(contactId: string) {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contact_history")
+    .select("id, action, source, changes, created_at")
+    .eq("org_id", org.id)
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as ContactHistoryItem[];
 }
 
 export async function createContactType(formData: FormData) {
