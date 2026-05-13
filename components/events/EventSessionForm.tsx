@@ -8,11 +8,13 @@ import type { LocationOption } from "@/lib/events";
 export function EventSessionForm({
   action,
   cancelHref,
+  collapsed = false,
   session,
   locations
 }: {
   action: (formData: FormData) => void | Promise<void>;
   cancelHref?: string;
+  collapsed?: boolean;
   session?: {
     title: string;
     starts_at: string | null;
@@ -27,6 +29,7 @@ export function EventSessionForm({
 }) {
   const [venueName, setVenueName] = useState(session?.locations?.name ?? "");
   const [venueAddress, setVenueAddress] = useState(session?.locations?.address ?? "");
+  const [isOpen, setIsOpen] = useState(!collapsed);
   const locationLookup = useMemo(() => new Map(locations.map((location) => [location.name, location])), [locations]);
 
   function updateVenue(name: string) {
@@ -36,6 +39,14 @@ export function EventSessionForm({
     if (location) {
       setVenueAddress(location.address ?? "");
     }
+  }
+
+  if (!isOpen) {
+    return (
+      <div className="mt-4">
+        <Button type="button" variant="secondary" onClick={() => setIsOpen(true)}>Add session</Button>
+      </div>
+    );
   }
 
   return (
@@ -79,8 +90,13 @@ export function EventSessionForm({
         </label>
       </div>
       <div>
-        <Button type="submit">{session ? "Save session" : "Add session"}</Button>
-        {cancelHref ? <Button className="ml-2" href={cancelHref} variant="secondary">Cancel</Button> : null}
+        <Button type="submit">{session ? "Save session" : "Confirm session"}</Button>
+        {session && cancelHref ? (
+          <Button className="ml-2" href={cancelHref} variant="secondary">Cancel</Button>
+        ) : null}
+        {!session ? (
+          <Button className="ml-2" type="button" variant="secondary" onClick={() => setIsOpen(false)}>Cancel</Button>
+        ) : null}
       </div>
     </form>
   );

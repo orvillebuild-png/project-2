@@ -120,7 +120,7 @@ export default async function EventDetailPage({
               ) : (
                 <p className="mt-3 text-sm text-muted">No sessions yet.</p>
               )}
-              <EventSessionForm action={addSessionAction} locations={locations} />
+              <EventSessionForm action={addSessionAction} collapsed locations={locations} />
             </div>
           ) : null}
         </Card>
