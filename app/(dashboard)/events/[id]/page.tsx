@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { addEventSession, getEvent, listEventSessions, listLocations, publishEvent } from "@/lib/events";
+import { listEventInviteeCount } from "@/lib/invitees";
 
 function eventDate(value: string | null) {
   if (!value) {
@@ -30,7 +31,12 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params;
   const { error, saved, session_added: sessionAdded, session_saved: sessionSaved } = await searchParams;
-  const [event, sessions, locations] = await Promise.all([getEvent(id), listEventSessions(id), listLocations()]);
+  const [event, sessions, locations, inviteeCount] = await Promise.all([
+    getEvent(id),
+    listEventSessions(id),
+    listLocations(),
+    listEventInviteeCount(id)
+  ]);
 
   if (!event) {
     notFound();
@@ -129,7 +135,7 @@ export default async function EventDetailPage({
             <Users className="h-5 w-5 text-moss" />
             <h2 className="mt-3 text-base font-semibold text-ink">Invitees</h2>
             <p className="mt-2 text-sm leading-6 text-muted">
-              Contact selection by filters, tags, and source is next.
+              {inviteeCount} contact{inviteeCount === 1 ? "" : "s"} selected for this event.
             </p>
             <Button className="mt-4 w-full" href={`/events/${event.id}/invitees`} variant="secondary">Select invitees</Button>
           </Card>
