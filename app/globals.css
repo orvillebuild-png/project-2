@@ -49,3 +49,23 @@ textarea {
 ::selection {
   background: rgba(57, 112, 95, 0.18);
 }
+
+.card-texture-paper {
+  background-image:
+    linear-gradient(90deg, rgba(16, 32, 51, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(16, 32, 51, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.card-texture-grid {
+  background-image:
+    linear-gradient(90deg, rgba(16, 32, 51, 0.08) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(16, 32, 51, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.card-texture-soft {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.42), transparent 34%),
+    radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.55), transparent 16rem);
+}
