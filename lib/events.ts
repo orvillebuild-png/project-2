@@ -12,6 +12,7 @@ export type EventListItem = {
   starts_at: string | null;
   ends_at: string | null;
   capacity: number | null;
+  recurrence_rule?: string | null;
   created_at: string;
   locations?: {
     id: string;
@@ -57,7 +58,7 @@ export async function listEvents() {
   const supabase = await createClientForServer();
   const { data, error } = await supabase
     .from("events")
-    .select("id, title, description, status, type, starts_at, ends_at, capacity, created_at, locations(id, name, address)")
+    .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
     .eq("org_id", org.id)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -85,7 +86,7 @@ export async function getEvent(eventId: string) {
   const supabase = await createClientForServer();
   const { data, error } = await supabase
     .from("events")
-    .select("id, title, description, status, type, starts_at, ends_at, capacity, created_at, locations(id, name, address)")
+    .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
     .eq("org_id", org.id)
     .eq("id", eventId)
     .maybeSingle();
@@ -104,6 +105,34 @@ export async function getEvent(eventId: string) {
       ? data.locations[0] ?? null
       : data.locations ?? null
   } as EventListItem;
+}
+
+export async function listEventSessions(parentEventId: string) {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
+    .eq("org_id", org.id)
+    .eq("parent_event_id", parentEventId)
+    .order("starts_at", { ascending: true, nullsFirst: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((event) => ({
+    ...event,
+    locations: Array.isArray(event.locations)
+      ? event.locations[0] ?? null
+      : event.locations ?? null
+  })) as EventListItem[];
 }
 
 export async function listLocations() {
@@ -202,6 +231,145 @@ export async function createEvent(formData: FormData) {
 
   revalidatePath("/events");
   redirect(`/events?created=${event.id}`);
+}
+
+export async function updateEvent(eventId: string, formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const title = formValue(formData, "title");
+  const description = nullableFormValue(formData, "description");
+  const locationName = nullableFormValue(formData, "location_name");
+  const locationAddress = nullableFormValue(formData, "location_address");
+  const startsAt = dateTimeValue(formData, "starts_at");
+  const endsAt = dateTimeValue(formData, "ends_at");
+  const capacityValue = nullableFormValue(formData, "capacity");
+  const capacity = capacityValue ? Number(capacityValue) : null;
+  const status = formValue(formData, "status") || "draft";
+  const type = eventTypeValue(formValue(formData, "type"));
+  const recurrenceRule = type === "recurring" ? nullableFormValue(formData, "recurrence_rule") : null;
+
+  if (!title) {
+    redirect(`/events/${eventId}/edit?error=missing_title`);
+  }
+
+  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+    redirect(`/events/${eventId}/edit?error=invalid_time`);
+  }
+
+  const supabase = await createClientForServer();
+  let locationId: string | null = null;
+
+  if (locationName) {
+    const { data: location, error: locationError } = await supabase
+      .from("locations")
+      .insert({
+        org_id: org.id,
+        name: locationName,
+        address: locationAddress
+      })
+      .select("id")
+      .single();
+
+    if (locationError) {
+      redirect(`/events/${eventId}/edit?error=${encodeURIComponent(locationError.message)}`);
+    }
+
+    locationId = location.id as string;
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({
+      location_id: locationId,
+      title,
+      description,
+      type,
+      status: status === "published" ? "published" : "draft",
+      starts_at: startsAt,
+      ends_at: endsAt,
+      recurrence_rule: recurrenceRule,
+      capacity: Number.isFinite(capacity) ? capacity : null
+    })
+    .eq("org_id", org.id)
+    .eq("id", eventId);
+
+  if (error) {
+    redirect(`/events/${eventId}/edit?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/events");
+  revalidatePath(`/events/${eventId}`);
+  redirect(`/events/${eventId}?saved=1`);
+}
+
+export async function addEventSession(parentEventId: string, formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const title = formValue(formData, "title");
+  const locationName = nullableFormValue(formData, "location_name");
+  const locationAddress = nullableFormValue(formData, "location_address");
+  const startsAt = dateTimeValue(formData, "starts_at");
+  const endsAt = dateTimeValue(formData, "ends_at");
+  const capacityValue = nullableFormValue(formData, "capacity");
+  const capacity = capacityValue ? Number(capacityValue) : null;
+
+  if (!title || !locationName) {
+    redirect(`/events/${parentEventId}?error=session_missing_fields`);
+  }
+
+  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+    redirect(`/events/${parentEventId}?error=invalid_time`);
+  }
+
+  const supabase = await createClientForServer();
+  const { data: location, error: locationError } = await supabase
+    .from("locations")
+    .insert({
+      org_id: org.id,
+      name: locationName,
+      address: locationAddress
+    })
+    .select("id")
+    .single();
+
+  if (locationError) {
+    redirect(`/events/${parentEventId}?error=${encodeURIComponent(locationError.message)}`);
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .insert({
+      org_id: org.id,
+      parent_event_id: parentEventId,
+      location_id: location.id,
+      title,
+      type: "single",
+      status: "draft",
+      starts_at: startsAt,
+      ends_at: endsAt,
+      capacity: Number.isFinite(capacity) ? capacity : null
+    });
+
+  if (error) {
+    redirect(`/events/${parentEventId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/events/${parentEventId}`);
+  redirect(`/events/${parentEventId}?session_added=1`);
 }
 
 export async function publishEvent(eventId: string) {

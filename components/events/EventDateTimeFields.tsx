@@ -57,6 +57,24 @@ function defaultDateParts(offsetHours: number): DateParts {
   };
 }
 
+function datePartsFromIso(value: string | null | undefined, offsetHours: number) {
+  if (!value) {
+    return defaultDateParts(offsetHours);
+  }
+
+  const date = new Date(value);
+  const hour = date.getHours();
+
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: hour % 12 || 12,
+    minute: Math.round(date.getMinutes() / 15) * 15,
+    period: hour >= 12 ? "PM" : "AM"
+  } as DateParts;
+}
+
 function DateTimeField({
   label,
   name,
@@ -124,9 +142,15 @@ function DateTimeField({
   );
 }
 
-export function EventDateTimeFields() {
-  const [startsAt, setStartsAt] = useState(defaultDateParts(24));
-  const [endsAt, setEndsAt] = useState(defaultDateParts(27));
+export function EventDateTimeFields({
+  defaultEndsAt,
+  defaultStartsAt
+}: {
+  defaultEndsAt?: string | null;
+  defaultStartsAt?: string | null;
+}) {
+  const [startsAt, setStartsAt] = useState(datePartsFromIso(defaultStartsAt, 24));
+  const [endsAt, setEndsAt] = useState(datePartsFromIso(defaultEndsAt, 27));
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

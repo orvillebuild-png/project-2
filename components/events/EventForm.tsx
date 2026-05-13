@@ -3,18 +3,28 @@
 import { useMemo, useState } from "react";
 import { EventDateTimeFields } from "@/components/events/EventDateTimeFields";
 import { Button } from "@/components/ui/Button";
-import type { LocationOption } from "@/lib/events";
+import type { EventListItem, LocationOption } from "@/lib/events";
+
+const eventTypeOptions: Array<{ label: string; value: EventListItem["type"] }> = [
+  { label: "Single", value: "single" },
+  { label: "Recurring", value: "recurring" },
+  { label: "Multi-venue", value: "multi_location" }
+];
 
 export function EventForm({
   action,
+  cancelHref = "/events",
+  event,
   locations
 }: {
   action: (formData: FormData) => void | Promise<void>;
+  cancelHref?: string;
+  event?: EventListItem;
   locations: LocationOption[];
 }) {
-  const [eventType, setEventType] = useState("single");
-  const [venueName, setVenueName] = useState("");
-  const [venueAddress, setVenueAddress] = useState("");
+  const [eventType, setEventType] = useState(event?.type ?? "single");
+  const [venueName, setVenueName] = useState(event?.locations?.name ?? "");
+  const [venueAddress, setVenueAddress] = useState(event?.locations?.address ?? "");
   const locationLookup = useMemo(() => new Map(locations.map((location) => [location.name, location])), [locations]);
 
   function updateVenue(name: string) {
@@ -30,21 +40,17 @@ export function EventForm({
     <form action={action} className="grid gap-5">
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Title</span>
-        <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="title" required placeholder="Fundraising gala" />
+        <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={event?.title ?? ""} name="title" required placeholder="Fundraising gala" />
       </label>
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Description</span>
-        <textarea className="min-h-28 w-full rounded-md border border-line bg-field px-3 py-3 outline-none focus:border-moss" name="description" placeholder="Private notes or public event summary" />
+        <textarea className="min-h-28 w-full rounded-md border border-line bg-field px-3 py-3 outline-none focus:border-moss" defaultValue={event?.description ?? ""} name="description" placeholder="Private notes or public event summary" />
       </label>
 
       <fieldset className="rounded-lg border border-line bg-field p-4">
         <legend className="px-1 text-sm font-semibold text-ink">Event type</legend>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {[
-            ["single", "Single"],
-            ["recurring", "Recurring"],
-            ["multi_location", "Multi-venue"]
-          ].map(([value, label]) => (
+          {eventTypeOptions.map(({ value, label }) => (
             <label className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-3 text-sm font-medium text-ink" key={value}>
               <input
                 checked={eventType === value}
@@ -75,7 +81,7 @@ export function EventForm({
         ) : null}
       </fieldset>
 
-      <EventDateTimeFields />
+      <EventDateTimeFields defaultEndsAt={event?.ends_at} defaultStartsAt={event?.starts_at} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink">
@@ -96,7 +102,7 @@ export function EventForm({
         </label>
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Capacity</span>
-          <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" min="0" name="capacity" type="number" />
+          <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={event?.capacity ?? ""} min="0" name="capacity" type="number" />
         </label>
       </div>
 
@@ -113,7 +119,7 @@ export function EventForm({
 
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Status</span>
-        <select className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="status" defaultValue="draft">
+        <select className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="status" defaultValue={event?.status ?? "draft"}>
           <option value="draft">Draft</option>
           <option value="published">Published</option>
         </select>
@@ -121,7 +127,7 @@ export function EventForm({
 
       <div className="flex gap-2">
         <Button type="submit">Save event</Button>
-        <Button href="/events" variant="secondary">Cancel</Button>
+        <Button href={cancelHref} variant="secondary">Cancel</Button>
       </div>
     </form>
   );
