@@ -13,6 +13,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Email subject.
 - Email body.
 - Basic email design controls.
+- Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
@@ -41,12 +42,13 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
    - footer
    - event details block visibility
 5. Campaign is saved as draft.
-6. User generates RSVP links.
-7. The app creates `send_log` records with unique `rsvp_token` values.
-8. User confirms the campaign send.
-9. The app sends only pending recipient rows through Resend.
-10. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
-11. Campaign detail shows each recipient, delivery status, and RSVP status.
+6. User reviews the live recipient preview in the campaign studio.
+7. User generates RSVP links.
+8. The app creates `send_log` records with unique `rsvp_token` values.
+9. User confirms the campaign send.
+10. The app sends only pending recipient rows through Resend.
+11. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
+12. Campaign detail shows each recipient, delivery status, and RSVP status.
 
 ## RSVP Flow
 
@@ -71,6 +73,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Track pending/yes/maybe/no response status from the campaign page.
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
+- Compose the email in a focused studio layout instead of a single raw admin form.
 - Send one rendered test email when Resend is configured.
 - Send the real campaign to pending recipients after confirming the action.
 - Resume a partial send by sending remaining pending recipients.
@@ -91,6 +94,18 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Resend calls use deterministic idempotency keys per campaign recipient to reduce accidental duplicate sends during retries.
 - If a send fails partway through, already accepted recipients remain `delivered`; the campaign returns to `draft` so remaining pending recipients can be sent later.
 - If no pending recipients exist, the send action stops without calling Resend.
+
+## UI Direction
+
+- The campaign editor follows the app's modern warm/yellow design direction.
+- The editor separates content authoring from operational sending controls.
+- Merge fields are always visible as chips while writing the message.
+- Preview sits beside the editor on desktop so changes are easier to reason about.
+- Delivery actions are grouped into one console:
+  - RSVP link generation/sync
+  - test email
+  - guarded real send
+- The UI structure is inspired by "design direction" workflows: each screen should have a clear posture, not just a collection of fields.
 
 ## Important Files
 
