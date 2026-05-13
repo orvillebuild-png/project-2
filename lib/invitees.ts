@@ -7,7 +7,7 @@ import { createClientForServer } from "@/lib/supabase";
 
 export type EventInvitee = {
   contact_id: string;
-  status: "invited" | "waitlisted" | "confirmed" | "attended" | "no_show";
+  status: "invited" | "waitlisted" | "confirmed" | "declined" | "attended" | "no_show";
   contacts: ContactListItem;
 };
 

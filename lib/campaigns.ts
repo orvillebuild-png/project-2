@@ -33,6 +33,22 @@ export type CampaignEventOption = {
   invitee_count: number;
 };
 
+export type CampaignRecipient = {
+  id: string;
+  contact_id: string;
+  rsvp_token: string;
+  delivery_status: "pending" | "delivered" | "bounced" | "complained";
+  contacts: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+  } | null;
+  rsvp_responses: {
+    response: "yes" | "no" | "maybe";
+    responded_at: string;
+  } | null;
+};
+
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
@@ -205,6 +221,37 @@ export async function getCampaignSendLogCount(campaignId: string) {
   }
 
   return count ?? 0;
+}
+
+type RawCampaignRecipient = Omit<CampaignRecipient, "contacts" | "rsvp_responses"> & {
+  contacts?: CampaignRecipient["contacts"] | CampaignRecipient["contacts"][];
+  rsvp_responses?: CampaignRecipient["rsvp_responses"] | CampaignRecipient["rsvp_responses"][];
+};
+
+export async function listCampaignRecipients(campaignId: string) {
+  await getCampaign(campaignId);
+
+  const { supabase } = await requireOrg();
+  const { data, error } = await supabase
+    .from("send_log")
+    .select("id, contact_id, rsvp_token, delivery_status, contacts(first_name, last_name, email), rsvp_responses(response, responded_at)")
+    .eq("campaign_id", campaignId)
+    .order("sent_at", { ascending: false, nullsFirst: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) => {
+    const recipient = row as RawCampaignRecipient;
+    return {
+      ...recipient,
+      contacts: Array.isArray(recipient.contacts) ? recipient.contacts[0] ?? null : recipient.contacts ?? null,
+      rsvp_responses: Array.isArray(recipient.rsvp_responses)
+        ? recipient.rsvp_responses[0] ?? null
+        : recipient.rsvp_responses ?? null
+    };
+  }) as CampaignRecipient[];
 }
 
 function renderMergeFields(template: string, values: Record<string, string>) {
