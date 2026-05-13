@@ -10,7 +10,16 @@ import { listContacts, listContactSources, listContactTypes, listTags } from "@/
 export default async function ContactsPage({
   searchParams
 }: {
-  searchParams: Promise<{ tag?: string; type?: string; source?: string; search?: string }>;
+  searchParams: Promise<{
+    age?: string;
+    limit?: string;
+    organization?: string;
+    search?: string;
+    sex?: string;
+    source?: string;
+    tag?: string;
+    type?: string;
+  }>;
 }) {
   const filters = await searchParams;
   const [contacts, contactTypes, tags, sources] = await Promise.all([
@@ -44,6 +53,10 @@ export default async function ContactsPage({
           action={
             <ContactFilters
               search={filters.search}
+              selectedAge={filters.age}
+              selectedLimit={filters.limit}
+              selectedOrganization={filters.organization}
+              selectedSex={filters.sex}
               selectedSource={filters.source}
               selectedTag={filters.tag}
               selectedType={filters.type}
@@ -52,7 +65,7 @@ export default async function ContactsPage({
               types={contactTypes}
             />
           }
-          description={`${contacts.length} contact${contacts.length === 1 ? "" : "s"} in the current workspace`}
+          description={`Showing ${contacts.length} contact${contacts.length === 1 ? "" : "s"} in the current view`}
           title="Contact list"
         />
         <div className="p-5">
@@ -67,7 +80,7 @@ export default async function ContactsPage({
             </Button>
           </div>
           {contacts.length > 0 ? (
-            <ContactTable contacts={contacts} />
+            <ContactTable contacts={contacts} tags={tags} />
           ) : (
             <EmptyState
               actionLabel="Add contact"

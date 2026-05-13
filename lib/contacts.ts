@@ -45,7 +45,11 @@ export type ContactFilters = {
   tag?: string;
   type?: string;
   source?: string;
+  sex?: string;
+  age?: string;
+  organization?: string;
   search?: string;
+  limit?: string;
 };
 
 export type ContactHistoryItem = {
@@ -55,6 +59,13 @@ export type ContactHistoryItem = {
   changes: Record<string, unknown>;
   created_at: string;
 };
+
+const CONTACT_LIST_LIMITS = [20, 30, 40, 50] as const;
+
+function contactListLimit(value?: string) {
+  const parsed = Number(value);
+  return CONTACT_LIST_LIMITS.includes(parsed as (typeof CONTACT_LIST_LIMITS)[number]) ? parsed : 20;
+}
 
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -95,11 +106,11 @@ export async function listContacts(filters: ContactFilters = {}) {
 
   let query = supabase
     .from("contacts")
-    .select("id, salutation, first_name, last_name, email, phone, source, organization_name, contact_type_id, email_status, created_at, contact_types(id, name, color), contact_tags(tags(id, name, color))")
+    .select("id, salutation, first_name, last_name, email, phone, sex, age, source, organization_name, contact_type_id, email_status, created_at, contact_types(id, name, color), contact_tags(tags(id, name, color))")
     .eq("org_id", org.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(contactListLimit(filters.limit));
 
   if (filters.type) {
     query = query.eq("contact_type_id", filters.type);
@@ -107,6 +118,41 @@ export async function listContacts(filters: ContactFilters = {}) {
 
   if (filters.source) {
     query = query.eq("source", filters.source);
+  }
+
+  if (filters.sex) {
+    query = query.eq("sex", filters.sex);
+  }
+
+  if (filters.organization) {
+    query = query.ilike("organization_name", `%${filters.organization}%`);
+  }
+
+  if (filters.age) {
+    if (filters.age === "unknown") {
+      query = query.is("age", null);
+    } else {
+      const ageRanges: Record<string, [number | null, number | null]> = {
+        under_18: [null, 17],
+        "18_24": [18, 24],
+        "25_34": [25, 34],
+        "35_44": [35, 44],
+        "45_54": [45, 54],
+        "55_64": [55, 64],
+        "65_plus": [65, null]
+      };
+      const range = ageRanges[filters.age];
+
+      if (range) {
+        const [minimum, maximum] = range;
+        if (minimum !== null) {
+          query = query.gte("age", minimum);
+        }
+        if (maximum !== null) {
+          query = query.lte("age", maximum);
+        }
+      }
+    }
   }
 
   if (filters.search) {
@@ -566,6 +612,103 @@ export async function softDeleteContact(contactId: string) {
 
   revalidatePath("/contacts");
   redirect("/contacts");
+}
+
+export async function bulkTagContacts(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const tagId = formValue(formData, "bulk_tag_id");
+  const contactIds = formData.getAll("contact_ids").map((value) => String(value)).filter(Boolean);
+
+  if (!tagId || contactIds.length === 0) {
+    redirect("/contacts?error=missing_selection");
+  }
+
+  const supabase = await createClientForServer();
+  const { data: tag, error: tagError } = await supabase
+    .from("tags")
+    .select("id")
+    .eq("org_id", org.id)
+    .eq("id", tagId)
+    .maybeSingle();
+
+  if (tagError || !tag) {
+    redirect(`/contacts?error=${encodeURIComponent(tagError?.message ?? "Tag not found")}`);
+  }
+
+  const { data: ownedContacts, error: contactError } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("org_id", org.id)
+    .is("deleted_at", null)
+    .in("id", contactIds);
+
+  if (contactError) {
+    redirect(`/contacts?error=${encodeURIComponent(contactError.message)}`);
+  }
+
+  const ownedContactIds = (ownedContacts ?? []).map((contact) => contact.id as string);
+
+  if (ownedContactIds.length === 0) {
+    redirect("/contacts?error=missing_selection");
+  }
+
+  const { data: userResult } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from("contact_tags")
+    .upsert(
+      ownedContactIds.map((contactId) => ({
+        contact_id: contactId,
+        tag_id: tagId,
+        applied_by: userResult.user?.id ?? null
+      })),
+      { onConflict: "contact_id,tag_id" }
+    );
+
+  if (error) {
+    redirect(`/contacts?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  redirect(`/contacts?tagged=${ownedContactIds.length}`);
+}
+
+export async function bulkDeleteContacts(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const contactIds = formData.getAll("contact_ids").map((value) => String(value)).filter(Boolean);
+
+  if (contactIds.length === 0) {
+    redirect("/contacts?error=missing_selection");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("contacts")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("org_id", org.id)
+    .in("id", contactIds);
+
+  if (error) {
+    redirect(`/contacts?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  redirect(`/contacts?deleted=${contactIds.length}`);
 }
 
 export function contactDisplayName(contact: Pick<ContactListItem, "first_name" | "last_name" | "email">) {

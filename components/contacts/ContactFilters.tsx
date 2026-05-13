@@ -11,6 +11,10 @@ export function ContactFilters({
   selectedTag,
   selectedType,
   selectedSource,
+  selectedSex,
+  selectedAge,
+  selectedOrganization,
+  selectedLimit,
   search
 }: {
   tags: ContactTag[];
@@ -19,10 +23,14 @@ export function ContactFilters({
   selectedTag?: string;
   selectedType?: string;
   selectedSource?: string;
+  selectedSex?: string;
+  selectedAge?: string;
+  selectedOrganization?: string;
+  selectedLimit?: string;
   search?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [showMore, setShowMore] = useState(Boolean(selectedSource));
+  const [showMore, setShowMore] = useState(Boolean(selectedSource || selectedSex || selectedAge || selectedOrganization || selectedLimit));
 
   function applyDropdownFilter() {
     formRef.current?.requestSubmit();
@@ -62,9 +70,9 @@ export function ContactFilters({
         <Button type="button" variant="secondary" onClick={() => setShowMore((current) => !current)}>More filters</Button>
       </div>
       {showMore ? (
-        <div className="flex justify-end">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss md:w-64"
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
             defaultValue={selectedSource ?? ""}
             name="source"
             onChange={applyDropdownFilter}
@@ -74,10 +82,60 @@ export function ContactFilters({
               <option key={source} value={source}>{source}</option>
             ))}
           </select>
+          <select
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            defaultValue={selectedSex ?? ""}
+            name="sex"
+            onChange={applyDropdownFilter}
+          >
+            <option value="">All sex</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+          </select>
+          <select
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            defaultValue={selectedAge ?? ""}
+            name="age"
+            onChange={applyDropdownFilter}
+          >
+            <option value="">All ages</option>
+            <option value="under_18">Under 18</option>
+            <option value="18_24">18-24</option>
+            <option value="25_34">25-34</option>
+            <option value="35_44">35-44</option>
+            <option value="45_54">45-54</option>
+            <option value="55_64">55-64</option>
+            <option value="65_plus">65+</option>
+            <option value="unknown">Unknown age</option>
+          </select>
+          <input
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            defaultValue={selectedOrganization ?? ""}
+            name="organization"
+            placeholder="Organization"
+          />
+          <select
+            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            defaultValue={selectedLimit ?? "20"}
+            name="limit"
+            onChange={applyDropdownFilter}
+          >
+            <option value="20">20 rows</option>
+            <option value="30">30 rows</option>
+            <option value="40">40 rows</option>
+            <option value="50">50 rows</option>
+          </select>
         </div>
-      ) : selectedSource ? (
-        <input name="source" type="hidden" value={selectedSource} />
-      ) : null}
+      ) : (
+        <>
+          {selectedSource ? <input name="source" type="hidden" value={selectedSource} /> : null}
+          {selectedSex ? <input name="sex" type="hidden" value={selectedSex} /> : null}
+          {selectedAge ? <input name="age" type="hidden" value={selectedAge} /> : null}
+          {selectedOrganization ? <input name="organization" type="hidden" value={selectedOrganization} /> : null}
+          {selectedLimit ? <input name="limit" type="hidden" value={selectedLimit} /> : null}
+        </>
+      )}
     </form>
   );
 }
