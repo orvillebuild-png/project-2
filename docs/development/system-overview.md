@@ -9,7 +9,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Database and auth: Supabase Auth, Postgres, RLS policies, and SQL migrations.
 - Repository: GitHub project `orvillebuild-png/project-2`.
 - Billing direction: Lemon Squeezy, not Stripe.
-- Email sending direction: not connected yet. Resend is the likely next provider.
+- Email sending: Resend for test sends and guarded campaign sends.
 
 ## Current Implemented Areas
 
@@ -25,6 +25,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Campaign recipient RSVP status tracking.
 - Campaign RSVP summary counts.
 - Guarded Resend test email action.
+- Guarded Resend campaign send action.
 
 ## Core Data Ownership
 
@@ -57,12 +58,11 @@ The project is being built in visible gates:
 3. Keep dangerous operations reversible or non-sending until verified.
 4. Add external providers only after local workflows are working.
 
-This is why campaigns currently prepare recipient logs but do not send emails.
+Campaigns now send through a separate confirmed action after recipient logs are prepared.
 
 ## Known External Dependencies Not Yet Connected
 
 - Lemon Squeezy billing.
-- Resend or another email provider.
 - Email validation provider.
 - Address autocomplete/geocoding provider.
 - Production deployment configuration.

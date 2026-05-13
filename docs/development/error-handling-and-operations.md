@@ -91,6 +91,27 @@ Current state:
 - They expose token-scoped lookup and token-scoped response only.
 - Do not expose raw campaign/contact browsing through public endpoints.
 
+### Email provider not configured
+
+Cause: `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing.
+
+Handling:
+
+- Test email and campaign send actions stop before calling Resend.
+- UI shows a setup error.
+- Local development currently uses `onboarding@resend.dev` for testing until a sender domain is verified.
+
+### Campaign send failure
+
+Cause: Resend rejects a recipient, network/API failure, or the app cannot update the accepted recipient's `send_log` row.
+
+Handling:
+
+- Campaign sending only targets pending `send_log` rows.
+- Each accepted email is marked `delivered` with `sent_at`.
+- If a later recipient fails, the campaign returns to `draft` so remaining pending rows can be retried.
+- Resend requests use deterministic idempotency keys per recipient to reduce duplicate sends during retries.
+
 ## Supabase Security Advisor Current Known Warning
 
 - Leaked password protection is disabled.

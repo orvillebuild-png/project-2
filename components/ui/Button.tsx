@@ -6,6 +6,7 @@ type ButtonProps = {
   href?: string;
   variant?: "primary" | "secondary" | "ghost";
   className?: string;
+  disabled?: boolean;
   onClick?: () => void;
   type?: "button" | "submit";
 };
@@ -18,6 +19,7 @@ const variants = {
 
 export function Button({
   children,
+  disabled = false,
   href,
   variant = "primary",
   className,
@@ -27,6 +29,7 @@ export function Button({
   const classes = cn(
     "inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold transition",
     variants[variant],
+    disabled && "cursor-not-allowed opacity-55",
     className
   );
 
@@ -39,7 +42,7 @@ export function Button({
   }
 
   return (
-    <button className={classes} onClick={onClick} type={type}>
+    <button className={classes} disabled={disabled} onClick={onClick} type={type}>
       {children}
     </button>
   );

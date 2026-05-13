@@ -48,6 +48,7 @@ export type CampaignRecipient = {
   contact_id: string;
   rsvp_token: string;
   delivery_status: "pending" | "delivered" | "bounced" | "complained";
+  sent_at: string | null;
   contacts: {
     first_name: string | null;
     last_name: string | null;
@@ -122,6 +123,14 @@ function eventDate(value?: string | null) {
     hour: "numeric",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function absoluteAppUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+function encodeError(value: string) {
+  return encodeURIComponent(value.slice(0, 420));
 }
 
 async function requireOrg() {
@@ -318,7 +327,7 @@ export async function listCampaignRecipients(campaignId: string) {
   const { supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
-    .select("id, contact_id, rsvp_token, delivery_status, contacts(first_name, last_name, email), rsvp_responses(response, responded_at)")
+    .select("id, contact_id, rsvp_token, delivery_status, sent_at, contacts(first_name, last_name, email), rsvp_responses(response, responded_at)")
     .eq("campaign_id", campaignId)
     .order("sent_at", { ascending: false, nullsFirst: false });
 
@@ -356,6 +365,47 @@ function paragraphHtml(value: string) {
     .split("\n")
     .map((line) => line.trim() ? `<p style="margin:0 0 14px;color:#42526b;line-height:1.6;">${line}</p>` : `<div style="height:10px;"></div>`)
     .join("");
+}
+
+type CampaignEmailPreview = NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>;
+
+function buildPreviewFromContact(
+  campaign: CampaignListItem,
+  contact: { id: string; first_name: string | null; last_name: string | null; email: string },
+  rsvpToken: string,
+  appUrl = absoluteAppUrl()
+): CampaignEmailPreview {
+  if (!campaign.events || !campaign.email_templates) {
+    throw new Error("Campaign is missing event or email template data.");
+  }
+
+  const firstName = contact.first_name || contact.email || "Friend";
+  const venue = campaign.events.locations?.name ?? "the venue";
+  const rsvpLink = `${appUrl}/rsvp/${rsvpToken}`;
+  const values: Record<string, string> = {
+    first_name: firstName,
+    event_title: campaign.events.title,
+    event_date: eventDate(campaign.events.starts_at),
+    rsvp_link: rsvpLink,
+    venue
+  };
+
+  return {
+    subject: renderMergeFields(campaign.email_templates.subject, values),
+    body: renderMergeFields(campaign.email_templates.html_body, values),
+    design: {
+      headline: renderMergeFields(campaign.email_templates.design_data.headline, values),
+      intro: renderMergeFields(campaign.email_templates.design_data.intro, values),
+      button_label: renderMergeFields(campaign.email_templates.design_data.button_label, values),
+      footer: renderMergeFields(campaign.email_templates.design_data.footer, values),
+      show_event_details: campaign.email_templates.design_data.show_event_details
+    },
+    eventTitle: campaign.events.title,
+    eventDate: eventDate(campaign.events.starts_at),
+    venue,
+    rsvpLink,
+    sampleEmail: contact.email
+  };
 }
 
 export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRsvpSummary {
@@ -412,6 +462,42 @@ function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof 
       </div>
     </div>
   `;
+}
+
+async function sendResendEmail({
+  apiKey,
+  from,
+  html,
+  idempotencyKey,
+  subject,
+  to
+}: {
+  apiKey: string;
+  from: string;
+  html: string;
+  idempotencyKey: string;
+  subject: string;
+  to: string;
+}) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || "Failed to send email");
+  }
 }
 
 export async function createCampaign(formData: FormData) {
@@ -545,7 +631,7 @@ export async function sendCampaignTestEmail(campaignId: string, formData: FormDa
   const to = formValue(formData, "test_to");
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = absoluteAppUrl();
 
   if (!to) {
     redirect(`/campaigns/${campaignId}?error=missing_test_email`);
@@ -584,11 +670,125 @@ export async function sendCampaignTestEmail(campaignId: string, formData: FormDa
 
   if (!response.ok) {
     const message = await response.text();
-    redirect(`/campaigns/${campaignId}?error=${encodeURIComponent(message || "Failed to send test email")}`);
+    redirect(`/campaigns/${campaignId}?error=${encodeError(message || "Failed to send test email")}`);
   }
 
   revalidatePath(`/campaigns/${campaignId}`);
   redirect(`/campaigns/${campaignId}?test_sent=1`);
+}
+
+export async function sendCampaign(campaignId: string, formData: FormData) {
+  "use server";
+
+  const confirmed = formData.get("confirm_send") === "on";
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+  const appUrl = absoluteAppUrl();
+  const campaign = await getCampaign(campaignId);
+
+  if (!campaign?.events || !campaign.email_templates) {
+    redirect(`/campaigns/${campaignId}?error=not_found`);
+  }
+
+  if (campaign.status === "sending") {
+    redirect(`/campaigns/${campaignId}?error=already_sending`);
+  }
+
+  if (!confirmed) {
+    redirect(`/campaigns/${campaignId}?error=confirm_send`);
+  }
+
+  if (!resendApiKey || !from) {
+    redirect(`/campaigns/${campaignId}?error=email_not_configured`);
+  }
+
+  const { supabase } = await requireOrg();
+  const { data, error } = await supabase
+    .from("send_log")
+    .select("id, contact_id, rsvp_token, delivery_status, contacts(id, first_name, last_name, email)")
+    .eq("campaign_id", campaignId)
+    .eq("delivery_status", "pending")
+    .order("id", { ascending: true });
+
+  if (error) {
+    redirect(`/campaigns/${campaignId}?error=${encodeError(error.message)}`);
+  }
+
+  const rows = (data ?? []).map((row) => {
+    const contact = Array.isArray(row.contacts) ? row.contacts[0] ?? null : row.contacts ?? null;
+    return {
+      id: row.id as string,
+      contact_id: row.contact_id as string,
+      rsvp_token: row.rsvp_token as string,
+      contact: contact as { id: string; first_name: string | null; last_name: string | null; email: string } | null
+    };
+  }).filter((row) => row.contact?.email);
+
+  if (rows.length === 0) {
+    redirect(`/campaigns/${campaignId}?error=no_pending_recipients`);
+  }
+
+  const { error: sendingError } = await supabase
+    .from("send_campaigns")
+    .update({ status: "sending" })
+    .eq("id", campaignId);
+
+  if (sendingError) {
+    redirect(`/campaigns/${campaignId}?error=${encodeError(sendingError.message)}`);
+  }
+
+  try {
+    for (const row of rows) {
+      if (!row.contact) {
+        continue;
+      }
+
+      const preview = buildPreviewFromContact(campaign, row.contact, row.rsvp_token, appUrl);
+      await sendResendEmail({
+        apiKey: resendApiKey,
+        from,
+        to: row.contact.email,
+        subject: preview.subject,
+        html: renderCampaignEmailHtml(preview),
+        idempotencyKey: `campaign-${campaignId}-recipient-${row.id}`
+      });
+
+      const { error: logError } = await supabase
+        .from("send_log")
+        .update({
+          delivery_status: "delivered",
+          sent_at: new Date().toISOString()
+        })
+        .eq("id", row.id);
+
+      if (logError) {
+        throw new Error(logError.message);
+      }
+    }
+  } catch (sendError) {
+    await supabase
+      .from("send_campaigns")
+      .update({ status: "draft" })
+      .eq("id", campaignId);
+
+    redirect(`/campaigns/${campaignId}?error=${encodeError(sendError instanceof Error ? sendError.message : "Failed to send campaign")}`);
+  }
+
+  const { error: sentError } = await supabase
+    .from("send_campaigns")
+    .update({
+      status: "sent",
+      sent_at: new Date().toISOString()
+    })
+    .eq("id", campaignId);
+
+  if (sentError) {
+    redirect(`/campaigns/${campaignId}?error=${encodeError(sentError.message)}`);
+  }
+
+  revalidatePath("/campaigns");
+  revalidatePath(`/campaigns/${campaignId}`);
+  redirect(`/campaigns/${campaignId}?sent=${rows.length}`);
 }
 
 export async function prepareCampaignRecipients(campaignId: string) {

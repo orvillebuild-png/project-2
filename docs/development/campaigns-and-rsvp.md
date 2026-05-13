@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Campaigns create invitation drafts for event invitees and prepare recipient-specific RSVP links before real email sending is connected.
+Campaigns create invitation drafts for event invitees, prepare recipient-specific RSVP links, send invitation emails through Resend, and track RSVP responses.
 
 ## Implemented Campaign Features
 
@@ -18,6 +18,8 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Campaign recipient RSVP status table.
 - RSVP summary counts.
 - Guarded Resend test email action.
+- Guarded campaign send action.
+- Per-recipient delivery status updates after Resend accepts an email.
 
 ## Supported Merge Fields
 
@@ -41,7 +43,10 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 5. Campaign is saved as draft.
 6. User generates RSVP links.
 7. The app creates `send_log` records with unique `rsvp_token` values.
-8. Campaign detail shows each recipient and RSVP status.
+8. User confirms the campaign send.
+9. The app sends only pending recipient rows through Resend.
+10. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
+11. Campaign detail shows each recipient, delivery status, and RSVP status.
 
 ## RSVP Flow
 
@@ -67,6 +72,8 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
 - Send one rendered test email when Resend is configured.
+- Send the real campaign to pending recipients after confirming the action.
+- Resume a partial send by sending remaining pending recipients.
 
 ## Error Handling
 
@@ -79,6 +86,11 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Public RSVP RPCs expose only token-scoped lookup and token-scoped response submission.
 - Test email sending requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 - If email env vars are missing, the UI shows a setup error and does not attempt to send.
+- Campaign sending requires a confirmation checkbox.
+- Campaign sending only targets `send_log` rows with `delivery_status = pending`.
+- Resend calls use deterministic idempotency keys per campaign recipient to reduce accidental duplicate sends during retries.
+- If a send fails partway through, already accepted recipients remain `delivered`; the campaign returns to `draft` so remaining pending recipients can be sent later.
+- If no pending recipients exist, the send action stops without calling Resend.
 
 ## Important Files
 
@@ -91,11 +103,10 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 
 ## Current Limitations
 
-- No real email sending yet.
-- Campaign-wide sending is not connected yet.
-- Delivery status remains `pending` until campaign send is implemented.
 - Test email sending is available only when Resend env vars are configured.
+- Real campaign sending is available only when Resend env vars are configured.
 - Email body is still plain text-style editing inside a structured layout.
 - No reusable drag-and-drop visual template builder yet.
-- RSVP link is rendered as a CTA in preview, but real email sending is not connected yet.
-- No campaign analytics yet beyond recipient RSVP status.
+- RSVP link is rendered as a CTA in preview and real sends.
+- No campaign analytics yet beyond delivery status and recipient RSVP status.
+- No Resend webhook processing yet for bounce, complaint, open, or click events.

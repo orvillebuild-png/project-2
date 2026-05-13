@@ -5,17 +5,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { requireUser } from "@/lib/auth";
-import { campaignRsvpSummary, getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaignTestEmail, updateCampaignDraft } from "@/lib/campaigns";
+import { campaignRsvpSummary, getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft } from "@/lib/campaigns";
 
 export default async function CampaignDetailPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string; test_sent?: string }>;
+  searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string; sent?: string; test_sent?: string }>;
 }) {
   const { id } = await params;
-  const [{ created, error, prepared, saved, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user] = await Promise.all([
+  const [{ created, error, prepared, saved, sent, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user] = await Promise.all([
     searchParams,
     getCampaign(id),
     getCampaignPreview(id),
@@ -30,8 +30,10 @@ export default async function CampaignDetailPage({
 
   const updateAction = updateCampaignDraft.bind(null, campaign.id);
   const prepareAction = prepareCampaignRecipients.bind(null, campaign.id);
+  const sendAction = sendCampaign.bind(null, campaign.id);
   const testEmailAction = sendCampaignTestEmail.bind(null, campaign.id);
   const summary = campaignRsvpSummary(recipients);
+  const pendingRecipients = recipients.filter((recipient) => recipient.delivery_status === "pending").length;
 
   return (
     <>
@@ -60,12 +62,19 @@ export default async function CampaignDetailPage({
                         ? "Email is not configured yet. Add RESEND_API_KEY and RESEND_FROM_EMAIL to enable test sends."
                         : error === "missing_test_email"
                           ? "Enter an email address for the test send."
+                          : error === "confirm_send"
+                            ? "Confirm the send before sending this campaign."
+                            : error === "no_pending_recipients"
+                              ? "There are no pending recipients to send. Sync the recipient log first, or the campaign may already be sent."
+                              : error === "already_sending"
+                                ? "This campaign is already sending."
                       : decodeURIComponent(error)}
                 </p>
               ) : null}
               {created ? <Notice>Campaign draft created.</Notice> : null}
               {saved ? <Notice>Campaign draft saved.</Notice> : null}
               {prepared ? <Notice>Prepared {prepared} new pending recipient{prepared === "1" ? "" : "s"}.</Notice> : null}
+              {sent ? <Notice>Sent campaign email to {sent} recipient{sent === "1" ? "" : "s"}.</Notice> : null}
               {testSent ? <Notice>Test email sent.</Notice> : null}
               <label className="grid gap-2 text-sm font-medium text-ink">
                 Campaign name
@@ -249,6 +258,31 @@ export default async function CampaignDetailPage({
             <form action={prepareAction} className="mt-4">
               <Button className="w-full" type="submit" variant="secondary">
                 {sendLogCount > 0 ? "Sync recipient log" : "Generate RSVP links"}
+              </Button>
+            </form>
+          </Card>
+          <Card className="p-5">
+            <h2 className="text-base font-semibold text-ink">Send campaign</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Sends to {pendingRecipients} pending recipient{pendingRecipients === 1 ? "" : "s"} with prepared RSVP links.
+            </p>
+            {campaign.status === "sent" ? (
+              <p className="mt-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
+                This campaign has been sent. New recipients can still be synced and sent later.
+              </p>
+            ) : null}
+            <form action={sendAction} className="mt-4 space-y-3">
+              <label className="flex items-start gap-2 text-sm leading-5 text-muted">
+                <input
+                  className="mt-1 h-4 w-4 rounded border-line text-moss focus:ring-moss"
+                  disabled={pendingRecipients === 0 || campaign.status === "sending"}
+                  name="confirm_send"
+                  type="checkbox"
+                />
+                I understand this will send real email to every pending recipient.
+              </label>
+              <Button className="w-full" disabled={pendingRecipients === 0 || campaign.status === "sending"} type="submit">
+                Send campaign
               </Button>
             </form>
           </Card>
