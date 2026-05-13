@@ -112,6 +112,17 @@ Handling:
 - If a later recipient fails, the campaign returns to `draft` so remaining pending rows can be retried.
 - Resend requests use deterministic idempotency keys per recipient to reduce duplicate sends during retries.
 
+### Card asset upload failure
+
+Cause: Invalid file type, file over 5MB, missing session, or Supabase Storage policy rejection.
+
+Handling:
+
+- Card designer accepts PNG, JPEG, WebP, and SVG files.
+- Files are uploaded to the public `card-assets` bucket under the workspace ID path.
+- Storage insert/update/delete policies require authenticated workspace membership.
+- The card JSON stores the public URL and layer metadata, not base64 image content.
+
 ## Supabase Security Advisor Current Known Warning
 
 - Leaked password protection is disabled.

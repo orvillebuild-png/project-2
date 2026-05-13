@@ -4,13 +4,14 @@ import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 
 export type CardSizePreset = "postcard" | "square" | "story" | "banner" | "custom";
-export type CardLayerType = "text" | "shape";
+export type CardLayerType = "text" | "shape" | "image";
 
 export type CardLayer = {
   id: string;
   type: CardLayerType;
   label: string;
   text?: string;
+  imageUrl?: string;
   x: number;
   y: number;
   width: number;
@@ -18,9 +19,12 @@ export type CardLayer = {
   color: string;
   backgroundColor?: string;
   fontSize?: number;
+  fontFamily?: string;
   fontWeight?: "400" | "600" | "700" | "800";
   align?: "left" | "center" | "right";
   radius?: number;
+  opacity?: number;
+  objectFit?: "contain" | "cover";
 };
 
 export type InvitationCardData = {
@@ -67,6 +71,7 @@ function defaultCardData(): InvitationCardData {
         height: 150,
         color: "#102033",
         fontSize: 72,
+        fontFamily: "Georgia, serif",
         fontWeight: "800",
         align: "left"
       },
@@ -81,6 +86,7 @@ function defaultCardData(): InvitationCardData {
         height: 190,
         color: "#42526b",
         fontSize: 34,
+        fontFamily: "Arial, sans-serif",
         fontWeight: "400",
         align: "left"
       },
@@ -96,6 +102,7 @@ function defaultCardData(): InvitationCardData {
         color: "#ffffff",
         backgroundColor: "#39705f",
         fontSize: 34,
+        fontFamily: "Arial, sans-serif",
         fontWeight: "700",
         align: "center",
         radius: 10
@@ -125,12 +132,13 @@ export function normalizeCardData(value: unknown): InvitationCardData {
 }
 
 function normalizeLayer(layer: Partial<CardLayer>, index: number): CardLayer {
-  const type = layer.type === "shape" ? "shape" : "text";
+  const type = layer.type === "shape" || layer.type === "image" ? layer.type : "text";
   return {
     id: typeof layer.id === "string" && layer.id ? layer.id : `layer-${index}`,
     type,
-    label: typeof layer.label === "string" && layer.label ? layer.label : type === "shape" ? "Shape" : "Text",
-    text: typeof layer.text === "string" ? layer.text : type === "shape" ? "RSVP" : "Text",
+    label: typeof layer.label === "string" && layer.label ? layer.label : type === "shape" ? "Shape" : type === "image" ? "Image" : "Text",
+    text: typeof layer.text === "string" ? layer.text : type === "shape" ? "RSVP" : type === "image" ? "" : "Text",
+    imageUrl: typeof layer.imageUrl === "string" ? layer.imageUrl : undefined,
     x: clampNumber(layer.x, 0, 3000, 80),
     y: clampNumber(layer.y, 0, 3000, 80),
     width: clampNumber(layer.width, 20, 3000, 400),
@@ -138,12 +146,19 @@ function normalizeLayer(layer: Partial<CardLayer>, index: number): CardLayer {
     color: normalizeHex(layer.color, type === "shape" ? "#ffffff" : "#102033"),
     backgroundColor: normalizeHex(layer.backgroundColor, "#39705f"),
     fontSize: clampNumber(layer.fontSize, 8, 180, type === "shape" ? 32 : 48),
+    fontFamily: normalizeFontFamily(layer.fontFamily),
     fontWeight: layer.fontWeight === "400" || layer.fontWeight === "600" || layer.fontWeight === "700" || layer.fontWeight === "800"
       ? layer.fontWeight
       : type === "shape" ? "700" : "600",
     align: layer.align === "center" || layer.align === "right" ? layer.align : "left",
-    radius: clampNumber(layer.radius, 0, 100, type === "shape" ? 8 : 0)
+    radius: clampNumber(layer.radius, 0, 100, type === "shape" ? 8 : 0),
+    opacity: clampNumber(layer.opacity, 10, 100, 100),
+    objectFit: layer.objectFit === "cover" ? "cover" : "contain"
   };
+}
+
+function normalizeFontFamily(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : "Arial, sans-serif";
 }
 
 function normalizeHex(value: unknown, fallback: string) {
@@ -192,6 +207,11 @@ function normalizeCard(row: RawInvitationCard): InvitationCard {
 
 export function newCardDefaults() {
   return defaultCardData();
+}
+
+export async function getCardOrgId() {
+  const { org } = await requireOrg();
+  return org.id;
 }
 
 export async function listCards() {

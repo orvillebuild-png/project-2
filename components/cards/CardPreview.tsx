@@ -103,8 +103,10 @@ export function CardPreview({
             width: layer.width * scale,
             height: layer.height * scale,
             color: layer.color,
+            fontFamily: layer.fontFamily ?? "Arial, sans-serif",
             fontSize: (layer.fontSize ?? 36) * scale,
             fontWeight: layer.fontWeight ?? "600",
+            opacity: (layer.opacity ?? 100) / 100,
             textAlign: layer.align ?? "left"
           } as const;
 
@@ -124,15 +126,24 @@ export function CardPreview({
                 ...commonStyle,
                 alignItems: layer.align === "center" ? "center" : layer.align === "right" ? "flex-end" : "flex-start",
                 backgroundColor: layer.type === "shape" ? layer.backgroundColor : "transparent",
-                borderRadius: layer.type === "shape" ? (layer.radius ?? 8) * scale : 0,
+                borderRadius: layer.type === "shape" || layer.type === "image" ? (layer.radius ?? 8) * scale : 0,
                 display: "flex",
                 justifyContent: "center",
+                overflow: "hidden",
                 padding: layer.type === "shape" ? `${10 * scale}px ${14 * scale}px` : 0,
                 touchAction: "none"
               }}
               type="button"
             >
-              {layer.text}
+              {layer.type === "image" && layer.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt={layer.label}
+                  className="h-full w-full"
+                  src={layer.imageUrl}
+                  style={{ objectFit: layer.objectFit ?? "contain" }}
+                />
+              ) : layer.text}
             </button>
           );
         })}

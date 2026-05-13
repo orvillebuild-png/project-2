@@ -1,14 +1,14 @@
 import { CardDesigner } from "@/components/cards/CardDesigner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { createCard, newCardDefaults } from "@/lib/cards";
+import { createCard, getCardOrgId, newCardDefaults } from "@/lib/cards";
 
 export default async function NewCardPage({
   searchParams
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const [{ error }, orgId] = await Promise.all([searchParams, getCardOrgId()]);
 
   return (
     <>
@@ -23,6 +23,7 @@ export default async function NewCardPage({
         cardData={newCardDefaults()}
         cardName="Untitled invitation"
         error={error}
+        orgId={orgId}
       />
     </>
   );

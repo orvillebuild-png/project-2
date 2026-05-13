@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, Copy, Layers, Palette, PanelRightClose, Save, Settings2, Square, Trash2, Type } from "lucide-react";
+import { Box, Copy, Image as ImageIcon, Layers, Palette, PanelRightClose, Save, Settings2, Square, Trash2, Type, Upload } from "lucide-react";
 import { CardPreview } from "@/components/cards/CardPreview";
 import { Button } from "@/components/ui/Button";
 import type { CardLayer, CardSizePreset, InvitationCardData } from "@/lib/cards";
+import { createClientForBrowser } from "@/lib/supabase-browser";
 import { cn } from "@/lib/utils";
 
 const sizePresets: Array<{ label: string; value: CardSizePreset; width: number; height: number }> = [
@@ -21,6 +22,21 @@ const designPresets: Array<{ label: string; data: Partial<InvitationCardData> }>
   { label: "Quiet editorial", data: { backgroundColor: "#f2f5f4", accentColor: "#2f6f8f", texture: "none" } }
 ];
 
+const fontOptions = [
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Trebuchet", value: "'Trebuchet MS', sans-serif" },
+  { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Garamond", value: "Garamond, 'Times New Roman', serif" },
+  { label: "Times", value: "'Times New Roman', Times, serif" },
+  { label: "Courier", value: "'Courier New', monospace" },
+  { label: "Impact", value: "Impact, Haettenschweiler, sans-serif" },
+  { label: "Palatino", value: "Palatino, 'Palatino Linotype', serif" },
+  { label: "Lucida", value: "'Lucida Sans', 'Lucida Grande', sans-serif" }
+];
+
 type Panel = "design" | "layers" | "size" | null;
 
 export function CardDesigner({
@@ -28,13 +44,15 @@ export function CardDesigner({
   cardData,
   cardName,
   error,
-  notice
+  notice,
+  orgId
 }: {
   action: (formData: FormData) => void;
   cardData: InvitationCardData;
   cardName: string;
   error?: string;
   notice?: string;
+  orgId: string;
 }) {
   const [name, setName] = useState(cardName);
   const [data, setData] = useState(cardData);
@@ -42,6 +60,8 @@ export function CardDesigner({
   const [panel, setPanel] = useState<Panel>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [is3d, setIs3d] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const selectedLayer = data.layers.find((layer) => layer.id === selectedLayerId) ?? data.layers[0];
   const scale = useMemo(() => Math.min(0.62, 760 / data.width, 600 / data.height), [data.height, data.width]);
 
@@ -75,6 +95,7 @@ export function CardDesigner({
           height: 110,
           color: "#102033",
           fontSize: 48,
+          fontFamily: "Arial, sans-serif",
           fontWeight: "700",
           align: "left"
         }
@@ -90,6 +111,7 @@ export function CardDesigner({
           color: "#ffffff",
           backgroundColor: data.accentColor,
           fontSize: 32,
+          fontFamily: "Arial, sans-serif",
           fontWeight: "700",
           align: "center",
           radius: 10
@@ -98,6 +120,62 @@ export function CardDesigner({
     setData((current) => ({ ...current, layers: [...current.layers, layer] }));
     setSelectedLayerId(id);
     setInspectorOpen(true);
+  }
+
+  async function addImageLayer(file: File) {
+    setUploadError("");
+
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Upload an image file.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Image must be 5MB or smaller.");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const supabase = createClientForBrowser();
+      const extension = file.name.split(".").pop()?.toLowerCase() || "png";
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-").slice(0, 72);
+      const path = `${orgId}/${Date.now()}-${safeName || `image.${extension}`}`;
+      const { error } = await supabase.storage.from("card-assets").upload(path, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false
+      });
+
+      if (error) {
+        setUploadError(error.message);
+        return;
+      }
+
+      const { data: publicUrl } = supabase.storage.from("card-assets").getPublicUrl(path);
+      const id = `image-${Date.now()}`;
+      const layer: CardLayer = {
+        id,
+        type: "image",
+        label: "Image",
+        imageUrl: publicUrl.publicUrl,
+        x: 120,
+        y: 120,
+        width: 360,
+        height: 240,
+        color: "#102033",
+        radius: 0,
+        opacity: 100,
+        objectFit: "contain"
+      };
+
+      setData((current) => ({ ...current, layers: [...current.layers, layer] }));
+      setSelectedLayerId(id);
+      setInspectorOpen(true);
+    } finally {
+      setUploading(false);
+    }
   }
 
   function duplicateLayer() {
@@ -159,15 +237,35 @@ export function CardDesigner({
           <ToolbarButton active={is3d} icon={<Box className="h-4 w-4" />} label="3D" onClick={() => setIs3d((value) => !value)} />
           <Button type="button" variant="secondary" onClick={() => addLayer("text")}><Type className="h-4 w-4" />Text</Button>
           <Button type="button" variant="secondary" onClick={() => addLayer("shape")}><Square className="h-4 w-4" />Shape</Button>
+          <label className={cn(
+            "inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:bg-field",
+            uploading && "cursor-not-allowed opacity-55"
+          )}>
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">{uploading ? "Uploading" : "Logo/image"}</span>
+            <input
+              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              className="sr-only"
+              disabled={uploading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) {
+                  void addImageLayer(file);
+                }
+              }}
+              type="file"
+            />
+          </label>
           <Button type="submit"><Save className="h-4 w-4" />Save</Button>
         </div>
       </div>
 
-      {(error || notice) ? (
+      {(error || notice || uploadError) ? (
         <div className="border-b border-line px-4 py-3">
-          {error ? (
+          {error || uploadError ? (
             <p className="rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
-              {error === "missing_fields" ? "Card name and design data are required." : decodeURIComponent(error)}
+              {uploadError || (error === "missing_fields" ? "Card name and design data are required." : decodeURIComponent(error ?? ""))}
             </p>
           ) : null}
           {notice ? <p className="rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">{notice}</p> : null}
@@ -340,6 +438,7 @@ function LayersPanel({
           onClick={() => selectLayer(layer.id)}
           type="button"
         >
+          {layer.type === "image" ? <ImageIcon className="mr-2 inline h-4 w-4" /> : null}
           {layer.label}
         </button>
       ))}
@@ -380,9 +479,11 @@ function InspectorPanel({
           value={layer.label}
         />
         <textarea
+          disabled={layer.type === "image"}
           className="min-h-24 rounded-md border border-line bg-field px-3 py-2 text-sm outline-none focus:border-moss"
           onChange={(event) => updateLayer(layer.id, { text: event.target.value })}
-          value={layer.text ?? ""}
+          placeholder={layer.type === "image" ? "Image layers do not use text." : undefined}
+          value={layer.type === "image" ? "" : layer.text ?? ""}
         />
         <div className="grid grid-cols-2 gap-2">
           <NumberInput label="X" max={data.width} min={0} onChange={(x) => updateLayer(layer.id, { x })} value={layer.x} />
@@ -390,31 +491,62 @@ function InspectorPanel({
           <NumberInput label="Width" max={data.width} min={20} onChange={(width) => updateLayer(layer.id, { width })} value={layer.width} />
           <NumberInput label="Height" max={data.height} min={20} onChange={(height) => updateLayer(layer.id, { height })} value={layer.height} />
         </div>
-        <NumberInput label="Text size" max={180} min={8} onChange={(fontSize) => updateLayer(layer.id, { fontSize })} value={layer.fontSize ?? 36} />
-        <select
-          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-          onChange={(event) => updateLayer(layer.id, { fontWeight: event.target.value as CardLayer["fontWeight"] })}
-          value={layer.fontWeight}
-        >
-          <option value="400">Regular</option>
-          <option value="600">Semi bold</option>
-          <option value="700">Bold</option>
-          <option value="800">Extra bold</option>
-        </select>
-        <select
-          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-          onChange={(event) => updateLayer(layer.id, { align: event.target.value as CardLayer["align"] })}
-          value={layer.align}
-        >
-          <option value="left">Left</option>
-          <option value="center">Center</option>
-          <option value="right">Right</option>
-        </select>
-        <ColorInput label="Text" onChange={(color) => updateLayer(layer.id, { color })} value={layer.color} />
+        {layer.type !== "image" ? (
+          <>
+            <NumberInput label="Text size" max={180} min={8} onChange={(fontSize) => updateLayer(layer.id, { fontSize })} value={layer.fontSize ?? 36} />
+            <label className="grid gap-1 text-xs font-semibold text-muted">
+              Font
+              <select
+                className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+                onChange={(event) => updateLayer(layer.id, { fontFamily: event.target.value })}
+                style={{ fontFamily: layer.fontFamily ?? "Arial, sans-serif" }}
+                value={layer.fontFamily ?? "Arial, sans-serif"}
+              >
+                {fontOptions.map((font) => (
+                  <option key={font.value} style={{ fontFamily: font.value }} value={font.value}>{font.label}</option>
+                ))}
+              </select>
+            </label>
+            <select
+              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+              onChange={(event) => updateLayer(layer.id, { fontWeight: event.target.value as CardLayer["fontWeight"] })}
+              value={layer.fontWeight}
+            >
+              <option value="400">Regular</option>
+              <option value="600">Semi bold</option>
+              <option value="700">Bold</option>
+              <option value="800">Extra bold</option>
+            </select>
+            <select
+              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+              onChange={(event) => updateLayer(layer.id, { align: event.target.value as CardLayer["align"] })}
+              value={layer.align}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+            <ColorInput label="Text" onChange={(color) => updateLayer(layer.id, { color })} value={layer.color} />
+          </>
+        ) : null}
         {layer.type === "shape" ? (
           <>
             <ColorInput label="Fill" onChange={(backgroundColor) => updateLayer(layer.id, { backgroundColor })} value={layer.backgroundColor ?? data.accentColor} />
             <NumberInput label="Corner radius" max={100} min={0} onChange={(radius) => updateLayer(layer.id, { radius })} value={layer.radius ?? 8} />
+          </>
+        ) : null}
+        {layer.type === "image" ? (
+          <>
+            <select
+              className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+              onChange={(event) => updateLayer(layer.id, { objectFit: event.target.value as CardLayer["objectFit"] })}
+              value={layer.objectFit ?? "contain"}
+            >
+              <option value="contain">Fit image</option>
+              <option value="cover">Fill frame</option>
+            </select>
+            <NumberInput label="Corner radius" max={100} min={0} onChange={(radius) => updateLayer(layer.id, { radius })} value={layer.radius ?? 0} />
+            <NumberInput label="Opacity" max={100} min={10} onChange={(opacity) => updateLayer(layer.id, { opacity })} value={layer.opacity ?? 100} />
           </>
         ) : null}
         <div className="grid grid-cols-2 gap-2 pt-1">

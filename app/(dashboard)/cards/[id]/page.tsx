@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { CardDesigner } from "@/components/cards/CardDesigner";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { getCard, updateCard } from "@/lib/cards";
+import { getCard, getCardOrgId, updateCard } from "@/lib/cards";
 
 export default async function CardDetailPage({
   params,
@@ -12,7 +12,7 @@ export default async function CardDetailPage({
   searchParams: Promise<{ created?: string; error?: string; saved?: string }>;
 }) {
   const { id } = await params;
-  const [{ created, error, saved }, card] = await Promise.all([searchParams, getCard(id)]);
+  const [{ created, error, saved }, card, orgId] = await Promise.all([searchParams, getCard(id), getCardOrgId()]);
 
   if (!card) {
     notFound();
@@ -32,6 +32,7 @@ export default async function CardDetailPage({
         cardName={card.name}
         error={error}
         notice={created ? "Card created." : saved ? "Card saved." : undefined}
+        orgId={orgId}
       />
     </>
   );

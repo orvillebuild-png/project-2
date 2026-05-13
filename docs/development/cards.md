@@ -21,6 +21,8 @@ Cards are reusable invitation designs that can later be attached to campaigns an
 - Layered card data stored in `invitation_cards.canvas_data`.
 - Text layers.
 - Shape/callout layers.
+- Image/logo layers uploaded to Supabase Storage.
+- Web-safe font picker for text and shape layers.
 - Layer selection, duplicate, delete, position, size, text, color, fill, radius, alignment, and font weight controls.
 - Centered editing canvas.
 - Pop-up side panels for design, size, layers, and selected-layer editing.
@@ -65,13 +67,14 @@ Cards are reusable invitation designs that can later be attached to campaigns an
 - `components/cards/CardPreview.tsx`
 - `lib/cards.ts`
 - `supabase/migrations/20260513143000_grant_invitation_cards.sql`
+- `supabase/migrations/20260513150000_create_card_assets_bucket.sql`
 
 ## Current Limitations
 
 - Layers can be moved by dragging, but resize handles are not implemented yet.
-- No image upload layer yet.
-- No logo library yet.
+- No reusable logo library yet.
 - No PNG export yet.
 - Cards are not attached to campaigns yet.
 - No reusable template marketplace/library yet.
 - 3D mode is a preview effect, not a true 3D object editor.
+- Font list currently uses web-safe fonts to avoid extra download cost and rendering instability.

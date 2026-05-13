@@ -18,7 +18,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - CSV contact import with mapping, validation, duplicate handling, and import source tracking.
 - Event creation, editing, publish state, and session management.
 - Invitee selection from contacts.
-- Reusable invitation card designer with structured layers.
+- Reusable invitation card designer with structured text, shape, and image/logo layers.
 - Campaign drafts from event invitees.
 - Basic campaign email design controls.
 - Recipient log generation with RSVP tokens.
