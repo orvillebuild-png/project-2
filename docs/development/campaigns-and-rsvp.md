@@ -12,6 +12,7 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Internal campaign name.
 - Email subject.
 - Email body.
+- Basic email design controls.
 - Merge-field preview.
 - Recipient log generation.
 - Campaign recipient RSVP status table.
@@ -29,10 +30,16 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 1. User selects an event.
 2. Campaign uses the event's selected invitees as its recipient source.
 3. User enters campaign name, subject, and message.
-4. Campaign is saved as draft.
-5. User generates RSVP links.
-6. The app creates `send_log` records with unique `rsvp_token` values.
-7. Campaign detail shows each recipient and RSVP status.
+4. User configures basic email design fields:
+   - headline
+   - intro copy
+   - RSVP button label
+   - footer
+   - event details block visibility
+5. Campaign is saved as draft.
+6. User generates RSVP links.
+7. The app creates `send_log` records with unique `rsvp_token` values.
+8. Campaign detail shows each recipient and RSVP status.
 
 ## RSVP Flow
 
@@ -55,10 +62,12 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 - Generate a recipient-specific RSVP link.
 - Test RSVP response loop without email sending.
 - Track pending/yes/maybe/no response status from the campaign page.
+- Adjust the visible email layout without editing raw HTML.
 
 ## Error Handling
 
 - Campaign creation requires event, campaign name, subject, and message.
+- Email design data is stored as JSON and falls back to safe defaults if missing.
 - Recipient log generation requires event invitees.
 - Recipient log generation only inserts missing records, so repeat sync is safe.
 - RSVP token lookup returns 404 if token is invalid.
@@ -78,7 +87,7 @@ Campaigns create invitation drafts for event invitees and prepare recipient-spec
 
 - No real email sending yet.
 - Delivery status remains `pending` until an email provider is connected.
-- Email body is plain text-style editing.
-- No reusable visual template builder yet.
-- RSVP link is currently rendered as a plain URL/path in preview.
+- Email body is still plain text-style editing inside a structured layout.
+- No reusable drag-and-drop visual template builder yet.
+- RSVP link is rendered as a CTA in preview, but real email sending is not connected yet.
 - No campaign analytics yet beyond recipient RSVP status.

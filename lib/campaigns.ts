@@ -24,7 +24,16 @@ export type CampaignListItem = {
     name: string;
     subject: string;
     html_body: string;
+    design_data: EmailDesignData;
   } | null;
+};
+
+export type EmailDesignData = {
+  headline: string;
+  intro: string;
+  button_label: string;
+  footer: string;
+  show_event_details: boolean;
 };
 
 export type CampaignEventOption = {
@@ -52,6 +61,45 @@ export type CampaignRecipient = {
 
 function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
+}
+
+function checkboxValue(formData: FormData, key: string) {
+  return formData.get(key) === "on";
+}
+
+function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
+  return {
+    headline: `You are invited to ${eventTitle}`,
+    intro: "We would be glad to have you with us.",
+    button_label: "RSVP now",
+    footer: "Thank you.",
+    show_event_details: true
+  };
+}
+
+function designDataFromForm(formData: FormData): EmailDesignData {
+  const defaults = defaultDesignData();
+
+  return {
+    headline: formValue(formData, "headline") || defaults.headline,
+    intro: formValue(formData, "intro") || defaults.intro,
+    button_label: formValue(formData, "button_label") || defaults.button_label,
+    footer: formValue(formData, "footer") || defaults.footer,
+    show_event_details: checkboxValue(formData, "show_event_details")
+  };
+}
+
+function normalizeDesignData(value: unknown): EmailDesignData {
+  const defaults = defaultDesignData();
+  const data = typeof value === "object" && value !== null ? value as Partial<EmailDesignData> : {};
+
+  return {
+    headline: typeof data.headline === "string" && data.headline.trim() ? data.headline : defaults.headline,
+    intro: typeof data.intro === "string" ? data.intro : defaults.intro,
+    button_label: typeof data.button_label === "string" && data.button_label.trim() ? data.button_label : defaults.button_label,
+    footer: typeof data.footer === "string" ? data.footer : defaults.footer,
+    show_event_details: typeof data.show_event_details === "boolean" ? data.show_event_details : defaults.show_event_details
+  };
 }
 
 function eventDate(value?: string | null) {
@@ -91,6 +139,9 @@ type RawCampaignRow = Omit<CampaignListItem, "events" | "email_templates"> & {
 
 function normalizeCampaign(row: RawCampaignRow) {
   const event = Array.isArray(row.events) ? row.events[0] ?? null : row.events ?? null;
+  const template = Array.isArray(row.email_templates)
+    ? row.email_templates[0] ?? null
+    : row.email_templates ?? null;
 
   return {
     ...row,
@@ -100,9 +151,12 @@ function normalizeCampaign(row: RawCampaignRow) {
           locations: Array.isArray(event.locations) ? event.locations[0] ?? null : event.locations ?? null
         }
       : null,
-    email_templates: Array.isArray(row.email_templates)
-      ? row.email_templates[0] ?? null
-      : row.email_templates ?? null
+    email_templates: template
+      ? {
+          ...template,
+          design_data: normalizeDesignData(template.design_data)
+        }
+      : null
   } as CampaignListItem;
 }
 
@@ -110,7 +164,7 @@ export async function listCampaigns() {
   const { org, supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_campaigns")
-    .select("id, name, status, recipient_count, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
+    .select("id, name, status, recipient_count, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body, design_data)")
     .eq("org_id", org.id)
     .order("scheduled_at", { ascending: false, nullsFirst: false });
 
@@ -166,7 +220,7 @@ export async function getCampaign(campaignId: string) {
   const { org, supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_campaigns")
-    .select("id, name, status, recipient_count, filter_snapshot, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body)")
+    .select("id, name, status, recipient_count, filter_snapshot, scheduled_at, sent_at, events(id, title, starts_at, locations(name, address)), email_templates(id, name, subject, html_body, design_data)")
     .eq("org_id", org.id)
     .eq("id", campaignId)
     .maybeSingle();
@@ -216,6 +270,17 @@ export async function getCampaignPreview(campaignId: string) {
   return {
     subject: renderMergeFields(campaign.email_templates.subject, values),
     body: renderMergeFields(campaign.email_templates.html_body, values),
+    design: {
+      headline: renderMergeFields(campaign.email_templates.design_data.headline, values),
+      intro: renderMergeFields(campaign.email_templates.design_data.intro, values),
+      button_label: renderMergeFields(campaign.email_templates.design_data.button_label, values),
+      footer: renderMergeFields(campaign.email_templates.design_data.footer, values),
+      show_event_details: campaign.email_templates.design_data.show_event_details
+    },
+    eventTitle: campaign.events.title,
+    eventDate: eventDate(campaign.events.starts_at),
+    venue,
+    rsvpLink,
     sampleEmail: contact?.email ?? "No invitee selected yet"
   };
 }
@@ -277,6 +342,7 @@ export async function createCampaign(formData: FormData) {
   const name = formValue(formData, "name");
   const subject = formValue(formData, "subject");
   const body = formValue(formData, "body");
+  const designData = designDataFromForm(formData);
 
   if (!eventId || !name || !subject || !body) {
     redirect("/campaigns/new?error=missing_fields");
@@ -309,6 +375,7 @@ export async function createCampaign(formData: FormData) {
       name: `${event.title} invitation`,
       subject,
       html_body: body,
+      design_data: designData,
       merge_tags: ["first_name", "event_title", "event_date", "venue", "rsvp_link"]
     })
     .select("id")
@@ -355,6 +422,7 @@ export async function updateCampaignDraft(campaignId: string, formData: FormData
   const subject = formValue(formData, "subject");
   const name = formValue(formData, "name");
   const body = formValue(formData, "body");
+  const designData = designDataFromForm(formData);
 
   if (!name || !subject || !body) {
     redirect(`/campaigns/${campaignId}?error=missing_fields`);
@@ -375,6 +443,7 @@ export async function updateCampaignDraft(campaignId: string, formData: FormData
     .update({
       subject,
       html_body: body,
+      design_data: designData,
       updated_at: new Date().toISOString()
     })
     .eq("id", campaign.email_templates.id);

@@ -76,6 +76,51 @@ export default async function CampaignDetailPage({
                   required
                 />
               </label>
+              <div className="grid gap-4 rounded-lg border border-line bg-field p-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm font-medium text-ink md:col-span-2">
+                  Email headline
+                  <input
+                    className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                    defaultValue={campaign.email_templates.design_data.headline}
+                    name="headline"
+                    required
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-ink md:col-span-2">
+                  Intro copy
+                  <textarea
+                    className="min-h-24 rounded-md border border-line bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-moss"
+                    defaultValue={campaign.email_templates.design_data.intro}
+                    name="intro"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-ink">
+                  RSVP button label
+                  <input
+                    className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                    defaultValue={campaign.email_templates.design_data.button_label}
+                    name="button_label"
+                    required
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium text-ink">
+                  Footer
+                  <input
+                    className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                    defaultValue={campaign.email_templates.design_data.footer}
+                    name="footer"
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-ink md:col-span-2">
+                  <input
+                    className="h-4 w-4 rounded border-line text-moss focus:ring-moss"
+                    defaultChecked={campaign.email_templates.design_data.show_event_details}
+                    name="show_event_details"
+                    type="checkbox"
+                  />
+                  Show event details block
+                </label>
+              </div>
               <label className="grid gap-2 text-sm font-medium text-ink">
                 Message
                 <textarea
@@ -141,8 +186,29 @@ export default async function CampaignDetailPage({
               {preview ? (
                 <div className="rounded-lg border border-line bg-field p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">To: {preview.sampleEmail}</p>
-                  <h2 className="mt-3 text-base font-semibold text-ink">{preview.subject}</h2>
-                  <div className="mt-4 whitespace-pre-wrap text-sm leading-6 text-muted">{preview.body}</div>
+                  <div className="mt-4 overflow-hidden rounded-lg border border-line bg-white">
+                    <div className="bg-moss px-4 py-5 text-white">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] opacity-80">Invitation</p>
+                      <h2 className="mt-2 text-xl font-semibold">{preview.design.headline}</h2>
+                    </div>
+                    <div className="space-y-4 p-4">
+                      {preview.design.intro ? <p className="text-sm leading-6 text-muted">{preview.design.intro}</p> : null}
+                      <div className="whitespace-pre-wrap text-sm leading-6 text-muted">{preview.body}</div>
+                      {preview.design.show_event_details ? (
+                        <div className="rounded-md border border-line bg-field p-3 text-sm text-muted">
+                          <p className="font-semibold text-ink">{preview.eventTitle}</p>
+                          <p className="mt-1">{preview.eventDate}</p>
+                          <p className="mt-1">{preview.venue}</p>
+                        </div>
+                      ) : null}
+                      <a className="inline-flex h-10 items-center justify-center rounded-md bg-moss px-4 text-sm font-semibold text-white" href={preview.rsvpLink}>
+                        {preview.design.button_label}
+                      </a>
+                      {preview.design.footer ? <p className="border-t border-line pt-4 text-xs leading-5 text-muted">{preview.design.footer}</p> : null}
+                    </div>
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-ink">Subject preview</h3>
+                  <p className="mt-1 text-sm text-muted">{preview.subject}</p>
                 </div>
               ) : (
                 <p className="text-sm text-muted">Add invitees to preview merge fields.</p>

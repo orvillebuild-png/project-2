@@ -15,7 +15,7 @@ export default async function NewCampaignPage({
     <>
       <PageHeader
         action={<Button href="/campaigns" variant="secondary">Back to campaigns</Button>}
-        description="Create an invitation draft from an event’s selected invitees. Nothing is sent from this screen."
+        description="Create an invitation draft from an event's selected invitees. Nothing is sent from this screen."
         eyebrow="Campaigns"
         title="New campaign"
       />
@@ -41,7 +41,7 @@ export default async function NewCampaignPage({
               <option value="">Choose event</option>
               {events.map((event) => (
                 <option key={event.id} value={event.id}>
-                  {event.title} · {event.invitee_count} invitee{event.invitee_count === 1 ? "" : "s"}
+                  {event.title} - {event.invitee_count} invitee{event.invitee_count === 1 ? "" : "s"}
                 </option>
               ))}
             </select>
@@ -65,6 +65,46 @@ export default async function NewCampaignPage({
               required
             />
           </label>
+          <div className="grid gap-4 rounded-lg border border-line bg-field p-4 md:grid-cols-2">
+            <label className="grid gap-2 text-sm font-medium text-ink md:col-span-2">
+              Email headline
+              <input
+                className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                defaultValue="You are invited to {{event_title}}"
+                name="headline"
+                required
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-ink md:col-span-2">
+              Intro copy
+              <textarea
+                className="min-h-24 rounded-md border border-line bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-moss"
+                defaultValue="We would be glad to have you with us."
+                name="intro"
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-ink">
+              RSVP button label
+              <input
+                className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                defaultValue="RSVP now"
+                name="button_label"
+                required
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-medium text-ink">
+              Footer
+              <input
+                className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss"
+                defaultValue="Thank you."
+                name="footer"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-ink md:col-span-2">
+              <input className="h-4 w-4 rounded border-line text-moss focus:ring-moss" defaultChecked name="show_event_details" type="checkbox" />
+              Show event details block
+            </label>
+          </div>
           <label className="grid gap-2 text-sm font-medium text-ink">
             Message
             <textarea
