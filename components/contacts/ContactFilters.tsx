@@ -14,7 +14,6 @@ export function ContactFilters({
   selectedSex,
   selectedAge,
   selectedOrganization,
-  selectedLimit,
   search
 }: {
   tags: ContactTag[];
@@ -26,11 +25,10 @@ export function ContactFilters({
   selectedSex?: string;
   selectedAge?: string;
   selectedOrganization?: string;
-  selectedLimit?: string;
   search?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [showMore, setShowMore] = useState(Boolean(selectedSource || selectedSex || selectedAge || selectedOrganization || selectedLimit));
+  const [showMore, setShowMore] = useState(Boolean(selectedSource || selectedSex || selectedAge || selectedOrganization));
 
   function applyDropdownFilter() {
     formRef.current?.requestSubmit();
@@ -70,7 +68,7 @@ export function ContactFilters({
         <Button type="button" variant="secondary" onClick={() => setShowMore((current) => !current)}>More filters</Button>
       </div>
       {showMore ? (
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           <select
             className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
             defaultValue={selectedSource ?? ""}
@@ -115,17 +113,6 @@ export function ContactFilters({
             name="organization"
             placeholder="Organization"
           />
-          <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
-            defaultValue={selectedLimit ?? "20"}
-            name="limit"
-            onChange={applyDropdownFilter}
-          >
-            <option value="20">20 rows</option>
-            <option value="30">30 rows</option>
-            <option value="40">40 rows</option>
-            <option value="50">50 rows</option>
-          </select>
         </div>
       ) : (
         <>
@@ -133,7 +120,6 @@ export function ContactFilters({
           {selectedSex ? <input name="sex" type="hidden" value={selectedSex} /> : null}
           {selectedAge ? <input name="age" type="hidden" value={selectedAge} /> : null}
           {selectedOrganization ? <input name="organization" type="hidden" value={selectedOrganization} /> : null}
-          {selectedLimit ? <input name="limit" type="hidden" value={selectedLimit} /> : null}
         </>
       )}
     </form>

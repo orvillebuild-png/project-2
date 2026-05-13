@@ -49,7 +49,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card>
+        <Card className="order-2 xl:order-1">
           <CardHeader
             action={<Badge tone="green">Build sequence active</Badge>}
             description="The product is being built to gates so every phase is independently visible and testable."
@@ -65,16 +65,16 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="order-1 xl:order-2">
           <CardHeader description="Early product surfaces before live data is wired." title="Quick actions" />
-          <div className="divide-y divide-line">
+          <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 xl:block xl:divide-y xl:divide-line xl:p-0">
             {[
               ["Import contacts", "/contacts/import"],
               ["Create event", "/events/new"],
               ["Start campaign", "/campaigns/new"],
               ["Review billing", "/settings/billing"]
             ].map(([label, href]) => (
-              <Button className="h-auto w-full justify-between rounded-none px-5 py-4" href={href} key={href} variant="ghost">
+              <Button className="h-auto w-full justify-between rounded-md border border-line bg-field px-3 py-3 text-left xl:rounded-none xl:border-0 xl:bg-transparent xl:px-5 xl:py-4" href={href} key={href} variant="ghost">
                 {label}
                 <ArrowRight className="h-4 w-4" />
               </Button>

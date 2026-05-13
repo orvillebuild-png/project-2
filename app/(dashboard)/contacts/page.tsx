@@ -1,6 +1,7 @@
 import { Plus, Settings2, Tags, Upload } from "lucide-react";
 import { ContactFilters } from "@/components/contacts/ContactFilters";
 import { ContactTable } from "@/components/contacts/ContactTable";
+import { RowLimitControl } from "@/components/contacts/RowLimitControl";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -54,7 +55,6 @@ export default async function ContactsPage({
             <ContactFilters
               search={filters.search}
               selectedAge={filters.age}
-              selectedLimit={filters.limit}
               selectedOrganization={filters.organization}
               selectedSex={filters.sex}
               selectedSource={filters.source}
@@ -80,7 +80,25 @@ export default async function ContactsPage({
             </Button>
           </div>
           {contacts.length > 0 ? (
-            <ContactTable contacts={contacts} tags={tags} />
+            <ContactTable
+              contacts={contacts}
+              footer={
+                <RowLimitControl
+                  action="/contacts"
+                  filters={{
+                    age: filters.age,
+                    organization: filters.organization,
+                    search: filters.search,
+                    sex: filters.sex,
+                    source: filters.source,
+                    tag: filters.tag,
+                    type: filters.type
+                  }}
+                  selectedLimit={filters.limit}
+                />
+              }
+              tags={tags}
+            />
           ) : (
             <EmptyState
               actionLabel="Add contact"

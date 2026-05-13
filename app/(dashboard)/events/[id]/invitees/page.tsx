@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { ArrowLeft, UserPlus, Users } from "lucide-react";
+import { RowLimitControl } from "@/components/contacts/RowLimitControl";
 import { InviteeFilterForm } from "@/components/events/InviteeFilterForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -51,10 +52,13 @@ export default async function EventInviteesPage({
     <>
       <PageHeader
         action={
-          <Button href={`/events/${event.id}`} variant="secondary">
-            <ArrowLeft className="h-4 w-4" />
-            Back to event
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button href="/contacts/import" variant="secondary">Upload contacts</Button>
+            <Button href={`/events/${event.id}`} variant="secondary">
+              <ArrowLeft className="h-4 w-4" />
+              Back to event
+            </Button>
+          </div>
         }
         description="Build the audience for this event before campaign drafting."
         eyebrow="Invitees"
@@ -68,7 +72,6 @@ export default async function EventInviteesPage({
                 action={`/events/${event.id}/invitees`}
                 search={filters.search}
                 selectedAge={filters.age}
-                selectedLimit={filters.limit}
                 selectedOrganization={filters.organization}
                 selectedSex={filters.sex}
                 selectedSource={filters.source}
@@ -148,6 +151,21 @@ export default async function EventInviteesPage({
                 </Button>
               </div>
             </form>
+            <div className="mt-3 flex justify-end">
+              <RowLimitControl
+                action={`/events/${event.id}/invitees`}
+                filters={{
+                  age: filters.age,
+                  organization: filters.organization,
+                  search: filters.search,
+                  sex: filters.sex,
+                  source: filters.source,
+                  tag: filters.tag,
+                  type: filters.type
+                }}
+                selectedLimit={filters.limit}
+              />
+            </div>
           </div>
         </Card>
         <Card>
