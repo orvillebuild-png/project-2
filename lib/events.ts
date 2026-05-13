@@ -60,6 +60,7 @@ export async function listEvents() {
     .from("events")
     .select("id, title, description, status, type, starts_at, ends_at, recurrence_rule, capacity, created_at, locations(id, name, address)")
     .eq("org_id", org.id)
+    .is("parent_event_id", null)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
