@@ -10,7 +10,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Repository: GitHub project `orvillebuild-png/project-2`.
 - Billing direction: Lemon Squeezy, not Stripe.
 - Email sending: Resend for test sends and guarded campaign sends.
-- Email checking: Reacher-compatible provider adapter when configured, with syntax/MX fallback.
+- Email checking: Disify-first provider adapter with optional Reacher support and syntax/MX fallback.
 
 ## Current Implemented Areas
 

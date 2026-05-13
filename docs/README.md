@@ -18,7 +18,7 @@ The platform is offered as a pay-per-use SaaS — organizations pay per email se
 - **Event management** — single events, recurring events, and multi-location parallel events with capacity and waitlist
 - **Invitation system** — drag-and-drop invitation card designer, email template builder, segmented campaign sends
 - **RSVP collection** — hosted RSVP pages linked by unique token, no login required for contacts
-- **Email validation** — real-time and bulk validation via self-hosted Reacher; bounce feedback loop from Resend
+- **Email validation** — real-time and bulk validation via Disify first, optional Reacher later, and bounce feedback loop from Resend
 - **Multi-tenancy** — each nonprofit is a fully isolated tenant; row-level security enforces data boundaries at the database level
 - **Usage-based billing** — metered billing via Lemon Squeezy; organizations pay for what they use while Lemon Squeezy acts as Merchant of Record for global sales tax and payment compliance
 
@@ -47,9 +47,9 @@ The platform is offered as a pay-per-use SaaS — organizations pay per email se
 | Database + Auth + Storage | Supabase (PostgreSQL + RLS) |
 | Background jobs | Inngest |
 | Transactional email | Resend |
-| Email validation | Reacher (self-hosted on Fly.io) |
+| Email validation | Disify, with optional Reacher fallback |
 | Payments | Lemon Squeezy (Merchant of Record + usage-based billing) |
-| Hosting | Vercel (app) + Fly.io (Reacher) |
+| Hosting | Vercel (app) |
 
 ---
 
@@ -80,6 +80,6 @@ Each phase ends at a gate where the product is independently usable and testable
 
 **Async-first** — bulk email sends, CSV imports, and email validation all run as Inngest background jobs. No synchronous API route handles more than one external call.
 
-**Single repo** — the Next.js app, Inngest functions, Supabase migrations, and documentation all live in one repository. Only the Reacher email validation service runs separately (on Fly.io, due to port 25 requirements).
+**Single repo** — the Next.js app, Inngest functions, Supabase migrations, and documentation all live in one repository. External services are integrated through provider adapters so validation providers can change without reshaping the core app.
 
 **Event data model** — a single `events` table handles all event types using `parent_event_id` (recurring instances) and `location_id` (multi-location children). This avoids separate tables per type while keeping queries straightforward.

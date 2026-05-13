@@ -1,6 +1,6 @@
 # Folder structure
 
-One monorepo containing the Next.js application, Supabase migrations, Inngest background functions, and all project documentation. The only service outside this repo is Reacher (deployed separately on Fly.io due to port 25 requirements).
+One monorepo containing the Next.js application, Supabase migrations, Inngest background functions, and all project documentation. External providers such as Disify, Resend, Supabase, and Lemon Squeezy are reached through adapter modules.
 
 ---
 
@@ -153,7 +153,7 @@ nonprofit-saas/
 │   ├── supabase.admin.ts             Service-role client — never import in client components
 │   ├── auth.ts                       getSession(), requireSession(), requireAdmin()
 │   ├── api-error.ts                  ApiError class + createErrorResponse()
-│   ├── reacher.ts                    validateEmail() — HTTP client for Fly.io Reacher
+│   ├── email-verification.ts         validateEmail() provider adapter: Disify, optional Reacher, local MX fallback
 │   ├── resend.ts                     sendEmail() + verifyWebhookSignature()
 │   ├── billing.ts                    Provider-agnostic billing helpers
 │   ├── lemon-squeezy.ts              createCheckout(), reportUsage(), verifyWebhookSignature()

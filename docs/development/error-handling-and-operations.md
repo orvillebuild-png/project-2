@@ -125,14 +125,16 @@ Handling:
 
 ### Email verification provider unavailable
 
-Cause: `REACHER_API_URL` is missing, the provider times out, or the provider returns an unexpected response.
+Cause: Disify is rate-limited/unavailable, Reacher is not configured, or a provider returns an unexpected response.
 
 Handling:
 
-- Without Reacher, the app performs syntax and domain MX checks.
+- The app tries Disify first.
+- If Disify fails, the app tries Reacher when `REACHER_API_URL` is configured.
+- If no external provider succeeds, the app performs syntax and domain MX checks.
 - Clearly malformed addresses and domains without MX records become `invalid`.
 - MX-valid addresses become `unknown` because mailbox-level deliverability was not confirmed.
-- Provider failures are stored as `unknown` with the reason in `email_validations.reason`.
+- The stored `email_validations.provider` value shows which checker produced the final result: `disify`, `reacher`, or `syntax_mx`.
 
 ### Card asset upload failure
 

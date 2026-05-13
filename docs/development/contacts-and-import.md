@@ -81,7 +81,9 @@ Email status values are:
 - `disposable`
 - `invalid`
 
-The app supports a provider adapter for Reacher when `REACHER_API_URL` is configured. If no verification provider is configured, the app falls back to a local syntax and domain MX check. That fallback can confirm obviously invalid addresses, but it cannot prove mailbox-level deliverability, so MX-valid addresses are marked `unknown`.
+The app uses Disify first because it has a useful free tier/no-key path for development and early production. Disify checks format, DNS/MX records, disposable domains, and confidence signals. If Disify is unavailable or rate-limited, the app falls back to Reacher when configured, then to a local syntax and domain MX check.
+
+The local fallback can confirm obviously invalid addresses, but it cannot prove mailbox-level deliverability, so MX-valid addresses are marked `unknown`.
 
 Verification writes a row to `email_validations`, updates `contacts.email_status`, updates `last_validated_at`, and records a `usage_events` entry for future billing/audit usage.
 
@@ -96,7 +98,8 @@ Verification writes a row to `email_validations`, updates `contacts.email_status
   - Manual contact: `Manual Entry`
   - Imported contact: CSV filename
 - Contact tables use horizontal scrolling to avoid clipped columns on small screens.
-- Email verification errors default to `unknown` unless the address is clearly malformed or the domain has no MX records.
+- Email verification uses Disify by default. Provider outages/rate limits fall back to the next configured checker.
+- Local verification errors default to `unknown` unless the address is clearly malformed or the domain has no MX records.
 
 ## Important Files
 

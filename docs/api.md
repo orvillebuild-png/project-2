@@ -475,7 +475,7 @@ Checks capacity before writing. If at capacity and response is `yes`, sets `wait
 }
 ```
 
-Calls Reacher synchronously (8-second timeout). If `contact_id` is provided, updates `contacts.email_status` and writes an `email_validations` row. Records a `usage_events` row for billing.
+Calls the email validation adapter synchronously. The adapter tries Disify first, then optional Reacher, then local syntax/MX fallback. If `contact_id` is provided, updates `contacts.email_status` and writes an `email_validations` row. Records a `usage_events` row for billing.
 
 ---
 

@@ -49,6 +49,88 @@ function mapReacherStatus(value: unknown, disposable: boolean | null): EmailVeri
   return "unknown";
 }
 
+function mapDisifyStatus(data: {
+  confidence?: number;
+  disposable?: boolean;
+  dns?: boolean;
+  format?: boolean;
+}): EmailVerificationStatus {
+  if (data.format === false || data.dns === false) {
+    return "invalid";
+  }
+
+  if (data.disposable) {
+    return "disposable";
+  }
+
+  if (typeof data.confidence === "number" && data.confidence >= 50) {
+    return "risky";
+  }
+
+  if (data.format && data.dns) {
+    return "valid";
+  }
+
+  return "unknown";
+}
+
+async function verifyWithDisify(email: string): Promise<VerificationResult | null> {
+  const endpoint = `https://disify.com/api/email/${encodeURIComponent(email.trim())}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+
+  try {
+    const response = await fetch(endpoint, {
+      headers: {
+        Accept: "application/json",
+        ...(process.env.DISIFY_API_KEY ? { Authorization: `Bearer ${process.env.DISIFY_API_KEY}` } : {})
+      },
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json() as {
+      confidence?: number;
+      disposable?: boolean;
+      dns?: boolean;
+      error?: string;
+      format?: boolean;
+      mx_info?: string[];
+      role?: boolean;
+      signals?: string[];
+    };
+
+    if (data.error) {
+      return null;
+    }
+
+    const signals = Array.isArray(data.signals) && data.signals.length > 0
+      ? `signals:${data.signals.slice(0, 4).join(",")}`
+      : null;
+    const confidence = typeof data.confidence === "number" ? `confidence:${data.confidence}` : null;
+    const role = data.role ? "role" : null;
+
+    return {
+      status: mapDisifyStatus(data),
+      subStatus: [confidence, signals, role].filter(Boolean).join(";") || null,
+      isDisposable: typeof data.disposable === "boolean" ? data.disposable : null,
+      mxFound: typeof data.dns === "boolean"
+        ? data.dns
+        : Array.isArray(data.mx_info)
+          ? data.mx_info.length > 0
+          : null,
+      provider: "disify"
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function verifyWithReacher(email: string): Promise<VerificationResult | null> {
   const endpoint = reacherEndpoint();
 
@@ -151,7 +233,7 @@ async function verifyWithDns(email: string): Promise<VerificationResult> {
 }
 
 export async function verifyEmailAddress(email: string) {
-  return await verifyWithReacher(email) ?? await verifyWithDns(email);
+  return await verifyWithDisify(email) ?? await verifyWithReacher(email) ?? await verifyWithDns(email);
 }
 
 async function writeVerification(contactId: string, orgId: string, result: VerificationResult) {

@@ -169,7 +169,7 @@ export default async function ContactDetailPage({
               <EmailStatusBadge status={contact.email_status} />
             </div>
             <p className="mt-3 text-sm leading-6 text-muted">
-              Reacher is used when configured. Until then, the app checks syntax and domain MX records.
+              Disify checks format, disposable status, and domain records. If it is unavailable, the app falls back to local syntax and MX checks.
             </p>
             <form action={verifyAction} className="mt-4">
               <Button className="w-full" type="submit" variant="secondary">Verify email</Button>

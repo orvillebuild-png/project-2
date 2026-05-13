@@ -39,7 +39,7 @@ export function ModulePage({
         </div>
         <div className="px-5 pb-5">
           <EmptyState
-            description="This page is part of the Phase 1 shell. The next passes connect it to Supabase, Inngest, Resend, Reacher, and Lemon Squeezy."
+            description="This page is part of the Phase 1 shell. The next passes connect it to Supabase, Inngest, Resend, Disify, and Lemon Squeezy."
             title="Ready for implementation"
           />
         </div>

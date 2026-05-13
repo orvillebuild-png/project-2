@@ -97,14 +97,14 @@ Bounce and complaint webhooks POST to `/api/webhooks/resend`, which triggers an 
 
 ---
 
-### Reacher (self-hosted)
-Open-source email validation engine written in Rust, deployed as a Docker container on Fly.io. Performs syntax checking, MX record lookup, SMTP server ping, and disposable email domain detection.
+### Disify email validation
+Free-first email validation API used as the default checker. It performs format checks, DNS/MX validation, disposable email detection, and confidence scoring without requiring an account for early usage.
 
-Called from Inngest jobs — not directly from API routes — to keep validation async and rate-controlled.
+Called from server-side validation actions and eventually from background jobs as validation volume grows. Results are stored in `email_validations` and copied to `contacts.email_status`.
 
-**Alternative considered:** ZeroBounce API. Rejected at launch to avoid per-validation API costs. Reacher can be replaced with a third-party API later if self-hosting becomes a maintenance burden.
+**Alternative considered:** Reacher, MailboxValidator, Abstract API, and ZeroBounce. Reacher remains optional if self-hosting becomes attractive later, but Disify keeps the launch path cheaper and simpler.
 
-**Watch-out:** Reacher requires outbound port 25 for SMTP checks. Many cloud providers (Railway, Render, Vercel) block this port. Fly.io allows it. Test outbound port 25 connectivity on the chosen host in the first week of development — not after the validation UI is built. Also: rate-limit Reacher calls to ~10 concurrent validations per org. Aggressive parallel SMTP checks will cause IP blocks from major email providers.
+**Watch-out:** Anonymous Disify usage is rate-limited. The app keeps a local syntax/MX fallback, and a paid/API-key provider can be added later behind the same adapter if production volume outgrows the free tier.
 
 ---
 
@@ -130,12 +130,6 @@ Deploys the Next.js application with zero configuration. Provides the edge CDN, 
 
 ---
 
-### Fly.io (Reacher host)
-Fly.io hosts the Reacher Docker container separately from the main application. It is the only service that runs outside the Next.js monorepo. A single small Fly machine is sufficient for moderate validation volumes.
-
-**Watch-out:** Monitor the Reacher machine's memory usage. The Rust binary is efficient but multiple concurrent SMTP connections can spike memory on a very small instance. Start with a shared-cpu-1x, 512MB machine and scale up if needed.
-
----
 
 ### Supabase Storage
 Stores org logos, card designer image assets, and exported invitation card PNGs. S3-compatible, access-controlled by RLS policies, and served via a built-in CDN.
@@ -156,6 +150,7 @@ INNGEST_EVENT_KEY
 INNGEST_SIGNING_KEY
 RESEND_API_KEY
 RESEND_WEBHOOK_SECRET
+DISIFY_API_KEY
 REACHER_API_URL
 REACHER_API_KEY
 LEMONSQUEEZY_API_KEY

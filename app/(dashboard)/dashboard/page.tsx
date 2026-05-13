@@ -5,7 +5,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 
 const metrics = [
   { label: "Contacts", value: "0", detail: "Ready for import", icon: UsersRound, color: "bg-amber" },
-  { label: "Valid emails", value: "0", detail: "Reacher pending setup", icon: MailCheck, color: "bg-skywash" },
+  { label: "Valid emails", value: "0", detail: "Disify checker active", icon: MailCheck, color: "bg-skywash" },
   { label: "Upcoming events", value: "0", detail: "Create your first event", icon: Clock3, color: "bg-[#dff8ea]" },
   { label: "Billing status", value: "Draft", detail: "Lemon Squeezy later", icon: CheckCircle2, color: "bg-night text-white" }
 ];

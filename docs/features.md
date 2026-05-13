@@ -105,7 +105,7 @@ Unsubscribe link (required by CAN-SPAM and GDPR), bounce handling, and complaint
 ### Core
 
 **Real-time validation on contact entry**
-When a contact is added manually or via the self-registration form, the email address is validated immediately via the Reacher API. The UI shows a "validating" state and updates the badge when the async job completes.
+When a contact is added manually or via the self-registration form, the email address is validated through the provider adapter. Disify is the default low-cost provider, with optional Reacher support and a local syntax/MX fallback. The UI shows a "validating" state and updates the badge when the async job completes.
 
 **Bulk validation on CSV import**
 After a CSV import completes, validation jobs are queued for every imported contact. A progress indicator shows validation status. Inngest handles concurrency and rate-limiting.

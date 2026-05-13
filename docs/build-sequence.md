@@ -68,29 +68,29 @@ Staff can add contacts manually, import a CSV, filter by tags, and a visitor can
 
 ## Phase 3 — Email validation
 **Duration:** ~1 week
-**Goal:** Every contact has a validated email status. The Inngest + Reacher pipeline is proven end-to-end.
+**Goal:** Every contact has a validated email status. The Disify-first validation pipeline is proven end-to-end, with a local fallback and optional Reacher support.
 
 ### Tasks
 
-**1. Deploy Reacher on Fly.io**
-Provision a Fly.io app running the Reacher Docker image. Confirm outbound port 25 is open. Set an API key for authentication. Test manually with `curl` using a known-valid and a known-invalid email address before writing any application code.
+**1. Configure Disify-first validation**
+Use Disify as the default low-cost validation provider. Test manually with a known-valid, known-invalid, and disposable email address before building automation around it.
 
-> Test this in week 3, not week 8. Discovering port 25 is blocked after the validation UI is built is a significant setback.
+> Keep the provider behind an adapter. Reacher, MailboxValidator, or another provider can be added later without changing the contact and campaign workflows.
 
 **2. Inngest setup + first validation job**
-Install the Inngest SDK. Write the `validate_email` function: receives `contact_id`, calls Reacher, writes a row to `email_validations`, and updates `contacts.email_status` in the same transaction. Run the Inngest dev server locally alongside Supabase. Test the full chain with a manual trigger.
+Install the Inngest SDK when validation volume needs background execution. Write the `validate_email` function: receives `contact_id`, calls the configured validation adapter, writes a row to `email_validations`, and updates `contacts.email_status` in the same transaction. Run the Inngest dev server locally alongside Supabase. Test the full chain with a manual trigger.
 
 **3. Real-time validation on contact add**
 When a contact is saved (manual form or self-registration), fire the `validate_email` Inngest event immediately. The UI shows "validating..." and updates the status badge via a Supabase Realtime subscription when the job completes. The contact save does not wait for validation to finish.
 
 **4. Bulk validation on CSV import**
-After the bulk import Inngest job completes, fan out one `validate_email` job per imported contact. Show a progress indicator in the UI. Set Inngest concurrency to ~10 parallel validations per org to avoid SMTP IP blocks.
+After the bulk import job completes, fan out one `validate_email` job per imported contact. Show a progress indicator in the UI. Keep concurrency modest to avoid provider rate limits.
 
 **5. Email status filter and summary counts**
 Add `email_status` as a filterable field in the contact list. Show a summary count above the table: "2,341 valid · 87 invalid · 14 disposable · 54 unknown".
 
 ### Gate
-Every contact has an email status. Staff can filter by it. Validation runs automatically on add and import. The Reacher sidecar is deployed and accessible.
+Every contact has an email status. Staff can filter by it. Validation runs automatically on add and import. Disify/free-tier limits are understood, and fallback behavior is tested.
 
 ---
 
