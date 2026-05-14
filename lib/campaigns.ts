@@ -38,6 +38,8 @@ export type EmailDesignData = {
   email_bg: string;
   header_bg: string;
   accent_color: string;
+  headline_color: string;
+  button_text_color: string;
   text_color: string;
   muted_color: string;
   image_url: string;
@@ -101,6 +103,8 @@ function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
     email_bg: "#f8f5eb",
     header_bg: "#161616",
     accent_color: "#ffca3a",
+    headline_color: "#ffffff",
+    button_text_color: "#161616",
     text_color: "#181713",
     muted_color: "#716f66",
     image_url: "",
@@ -156,6 +160,8 @@ function designDataFromForm(formData: FormData): EmailDesignData {
     email_bg: hexValue(formValue(formData, "email_bg"), defaults.email_bg),
     header_bg: hexValue(formValue(formData, "header_bg"), defaults.header_bg),
     accent_color: hexValue(formValue(formData, "accent_color"), defaults.accent_color),
+    headline_color: hexValue(formValue(formData, "headline_color"), defaults.headline_color),
+    button_text_color: hexValue(formValue(formData, "button_text_color"), defaults.button_text_color),
     text_color: hexValue(formValue(formData, "text_color"), defaults.text_color),
     muted_color: hexValue(formValue(formData, "muted_color"), defaults.muted_color),
     image_url: formValue(formData, "image_url"),
@@ -182,6 +188,8 @@ function normalizeDesignData(value: unknown): EmailDesignData {
     email_bg: typeof data.email_bg === "string" ? hexValue(data.email_bg, defaults.email_bg) : defaults.email_bg,
     header_bg: typeof data.header_bg === "string" ? hexValue(data.header_bg, defaults.header_bg) : defaults.header_bg,
     accent_color: typeof data.accent_color === "string" ? hexValue(data.accent_color, defaults.accent_color) : defaults.accent_color,
+    headline_color: typeof data.headline_color === "string" ? hexValue(data.headline_color, defaults.headline_color) : defaults.headline_color,
+    button_text_color: typeof data.button_text_color === "string" ? hexValue(data.button_text_color, defaults.button_text_color) : defaults.button_text_color,
     text_color: typeof data.text_color === "string" ? hexValue(data.text_color, defaults.text_color) : defaults.text_color,
     muted_color: typeof data.muted_color === "string" ? hexValue(data.muted_color, defaults.muted_color) : defaults.muted_color,
     image_url: typeof data.image_url === "string" ? data.image_url : defaults.image_url,
@@ -577,17 +585,17 @@ export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<
     : "";
 
   const cta = preview.rsvpLink.startsWith("http") || preview.rsvpLink.startsWith("/")
-    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:999px;background:${preview.design.accent_color};color:#161616;text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
+    ? `<a href="${escapeHtml(preview.rsvpLink)}" style="display:inline-block;margin-top:8px;padding:12px 18px;border-radius:999px;background:${preview.design.accent_color};color:${preview.design.button_text_color};text-decoration:none;font-weight:700;">${escapeHtml(preview.design.button_label)}</a>`
     : "";
 
   return `
     <div style="margin:0;padding:36px;background:${preview.design.email_bg};font-family:${preview.design.font_family};">
       <div style="max-width:640px;margin:0 auto;border:1px solid #dfdccf;border-radius:18px;overflow:hidden;background:#ffffff;">
-        <div style="padding:30px 28px;background:${preview.design.header_bg};color:#ffffff;">
+        <div style="padding:30px 28px;background:${preview.design.header_bg};color:${preview.design.headline_color};">
           <p style="margin:0 0 12px;font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:${preview.design.accent_color};">Invitation</p>
           <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:700;">${escapeHtml(preview.design.headline)}</h1>
         </div>
-        <div style="padding:28px;color:${preview.design.muted_color};">
+        <div style="padding:28px;color:${preview.design.text_color};">
           ${image}
           ${preview.design.intro ? `<p style="margin:0 0 18px;color:${preview.design.muted_color};line-height:1.6;">${escapeHtml(preview.design.intro)}</p>` : ""}
           ${paragraphHtml(preview.body)}

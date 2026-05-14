@@ -128,9 +128,9 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <CampaignBodyEditor defaultValue={campaign.email_templates.html_body} mergeFields={mergeFields} />
+              <CampaignBodyEditor defaultValue={campaign.email_templates.html_body} design={campaign.email_templates.design_data} mergeFields={mergeFields} orgId={membership.orgs.id} />
 
-              <EmailTemplateControls design={campaign.email_templates.design_data} orgId={membership.orgs.id} />
+              <EmailTemplateControls design={campaign.email_templates.design_data} />
 
               <div className="flex justify-end">
                 <Button type="submit">Save changes</Button>

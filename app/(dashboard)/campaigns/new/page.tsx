@@ -82,9 +82,11 @@ export default async function NewCampaignPage({
           </section>
           <CampaignBodyEditor
             defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
+            design={designDefaults}
             mergeFields={mergeFields}
+            orgId={membership?.orgs?.id ?? ""}
           />
-          <EmailTemplateControls design={designDefaults} orgId={membership?.orgs?.id ?? ""} />
+          <EmailTemplateControls design={designDefaults} />
           <div className="flex justify-end">
             <Button type="submit">Save draft</Button>
           </div>

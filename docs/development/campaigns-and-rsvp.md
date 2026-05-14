@@ -17,12 +17,13 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Authenticated email preview route that renders the same HTML used by Resend.
 - Full-size email preview screen.
 - Email-safe template controls:
-  - page, header, accent, text, and muted color selection
+  - page, header, headline, accent, button text, body text, and muted color selection
   - font family selection
-  - hero image URL and upload
-  - drag-adjusted image width
+  - uploaded image URL, alt text, and drag-adjusted image width
 - Shared campaign body editor for new drafts and later edits.
 - Body editor toolbar for undo, redo, bold, italic, underline-style strong text, link insertion, lists, quote snippets, and emoji insertion.
+- Message toolbar image upload and file attachment actions.
+- Uploaded campaign image preview inside the message editor with direct drag resizing on the image.
 - Emoji picker uses `emoji-picker-react` with client-only dynamic loading.
 - Sender identity fields for from name and from email.
 - File attachment upload and attachment link rendering.
@@ -125,7 +126,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Preview sits beside the editor on desktop so changes are easier to reason about.
 - Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
 - Template controls intentionally use email-client-safe inline styles.
-- Image insertion currently accepts public HTTP/HTTPS image URLs and stores the target width in template design JSON.
+- Image insertion uploads from the message toolbar and stores the public URL, alt text, and target width in template design JSON.
+- Image resizing is performed by dragging the handle on the previewed image itself.
 - Uploaded email images and attachments are stored in a public org-scoped `email-assets` bucket.
 - Attachments are included as Resend attachments when sending and also shown as a link in the email body.
 - `from_email` must be a sender/domain Resend is allowed to send from; otherwise Resend will reject the send.
