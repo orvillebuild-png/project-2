@@ -1,12 +1,10 @@
-import { CampaignBodyEditor } from "@/components/campaigns/CampaignBodyEditor";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
+import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { createCampaign, listCampaignEventOptions, newCampaignDesignDefaults } from "@/lib/campaigns";
 import { getCurrentOrg } from "@/lib/auth";
-
-const mergeFields = ["{{first_name}}", "{{event_title}}", "{{event_date}}", "{{venue}}", "{{rsvp_link}}"];
 
 export default async function NewCampaignPage({
   searchParams
@@ -80,10 +78,9 @@ export default async function NewCampaignPage({
               />
             </label>
           </section>
-          <CampaignBodyEditor
+          <VisualEmailBuilder
             defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
             design={designDefaults}
-            mergeFields={mergeFields}
             orgId={membership?.orgs?.id ?? ""}
           />
           <EmailTemplateControls design={designDefaults} />

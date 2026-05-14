@@ -1,15 +1,13 @@
 import { notFound } from "next/navigation";
 import { Mail, Send } from "lucide-react";
-import { CampaignBodyEditor } from "@/components/campaigns/CampaignBodyEditor";
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
+import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
 import { campaignRsvpSummary, getCampaign, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft, updateCampaignDraftAndPreview } from "@/lib/campaigns";
-
-const mergeFields = ["{{first_name}}", "{{event_title}}", "{{event_date}}", "{{venue}}", "{{rsvp_link}}"];
 
 export default async function CampaignDetailPage({
   params,
@@ -128,10 +126,9 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <CampaignBodyEditor
+              <VisualEmailBuilder
                 defaultValue={campaign.email_templates.html_body}
                 design={campaign.email_templates.design_data}
-                mergeFields={mergeFields}
                 orgId={membership.orgs.id}
                 previewAction={previewAction}
               />

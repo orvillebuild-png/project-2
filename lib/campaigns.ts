@@ -29,6 +29,8 @@ export type CampaignListItem = {
 };
 
 export type EmailDesignData = {
+  editor_mode: "visual" | "legacy";
+  unlayer_design: Record<string, unknown> | null;
   headline: string;
   intro: string;
   button_label: string;
@@ -94,6 +96,8 @@ function checkboxValue(formData: FormData, key: string) {
 
 function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
   return {
+    editor_mode: "visual",
+    unlayer_design: null,
     headline: `You are invited to ${eventTitle}`,
     intro: "We would be glad to have you with us.",
     button_label: "RSVP now",
@@ -152,10 +156,28 @@ function numericValue(value: string, fallback: number, min: number, max: number)
   return Math.min(max, Math.max(min, Math.round(parsed)));
 }
 
+function jsonRecordValue(value: string): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function designDataFromForm(formData: FormData): EmailDesignData {
   const defaults = defaultDesignData();
+  const editorMode = formValue(formData, "editor_mode") === "visual" ? "visual" : "legacy";
 
   return {
+    editor_mode: editorMode,
+    unlayer_design: jsonRecordValue(formValue(formData, "unlayer_design")),
     headline: formValue(formData, "headline") || defaults.headline,
     intro: formValue(formData, "intro") || defaults.intro,
     button_label: formValue(formData, "button_label") || defaults.button_label,
@@ -184,6 +206,10 @@ function normalizeDesignData(value: unknown): EmailDesignData {
   const data = typeof value === "object" && value !== null ? value as Partial<EmailDesignData> : {};
 
   return {
+    editor_mode: data.editor_mode === "visual" || data.editor_mode === "legacy" ? data.editor_mode : defaults.editor_mode,
+    unlayer_design: typeof data.unlayer_design === "object" && data.unlayer_design !== null && !Array.isArray(data.unlayer_design)
+      ? data.unlayer_design as Record<string, unknown>
+      : defaults.unlayer_design,
     headline: typeof data.headline === "string" && data.headline.trim() ? data.headline : defaults.headline,
     intro: typeof data.intro === "string" ? data.intro : defaults.intro,
     button_label: typeof data.button_label === "string" && data.button_label.trim() ? data.button_label : defaults.button_label,
@@ -562,6 +588,10 @@ export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRs
 }
 
 export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
+  if (preview.design.editor_mode === "visual") {
+    return preview.body;
+  }
+
   const imageUrl = safeImageUrl(preview.design.image_url);
   const attachmentUrl = safeImageUrl(preview.design.attachment_url);
   const image = imageUrl

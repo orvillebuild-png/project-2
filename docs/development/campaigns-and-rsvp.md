@@ -12,21 +12,21 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Internal campaign name.
 - Email subject.
 - Email body.
-- Basic email design controls.
+- Visual drag-and-drop email template builder powered by `react-email-editor`.
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
 - Campaign preview is opened intentionally from the message editor instead of running as a permanent side panel.
 - The message preview action saves the current draft before opening the full email preview.
 - Authenticated email preview route that renders the same HTML used by Resend.
 - Full-size email preview screen.
-- Email-safe template controls:
-  - page, header, headline, accent, button text, body text, and muted color selection
-  - font family selection from common email-safe fonts in the message toolbar
-  - uploaded image URL, alt text, and drag-adjusted image width
-- Shared campaign body editor for new drafts and later edits.
-- Body editor toolbar for undo, redo, bold, italic, underline-style strong text, link insertion, lists, quote snippets, and emoji insertion.
-- Message toolbar image upload and file attachment actions.
-- Uploaded campaign image preview inside the message editor with direct drag resizing on the image.
-- Emoji picker uses `emoji-picker-react` with client-only dynamic loading.
+- Email-safe visual template controls:
+  - drag-and-drop rows and content blocks
+  - text, heading, button, divider, HTML, and image blocks
+  - font choices exposed inside the builder, including Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Source Sans 3, Merriweather, and Playfair Display
+  - built-in color, spacing, sizing, and mobile-responsive controls
+- Shared visual builder for new drafts and later edits.
+- Builder exports both final HTML and design JSON when a campaign is saved, previewed, tested, or sent.
+- Builder image uploads are stored in Supabase Storage through a custom Unlayer image callback.
+- File attachment upload remains available from the builder header and is sent through Resend as an email attachment.
 - Sender identity fields for from name and from email.
 - File attachment upload and attachment link rendering.
 - Merge-field preview.
@@ -51,13 +51,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 
 1. User selects an event.
 2. Campaign uses the event's selected invitees as its recipient source.
-3. User enters campaign name, subject, and message.
-4. User configures basic email design fields:
-   - headline
-   - intro copy
-   - RSVP button label
-   - footer
-   - event details block visibility
+3. User enters campaign name and subject.
+4. User designs the email in the visual builder, including copy, layout, colors, fonts, buttons, merge fields, images, and links.
 5. Campaign is saved as draft.
 6. User reviews the live recipient preview in the campaign studio.
 7. User generates RSVP links.
@@ -156,8 +151,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 
 - Test email sending is available only when Resend env vars are configured.
 - Real campaign sending is available only when Resend env vars are configured.
-- Email body is still plain text-style editing inside a structured layout.
-- No reusable drag-and-drop visual template builder yet.
+- Unlayer loads from its hosted editor script, so the builder requires network access while editing.
+- Complex visual templates can produce larger Server Action payloads; the app raises the action body limit to support saved design JSON.
 - RSVP link is rendered as a CTA in preview and real sends.
 - No campaign analytics yet beyond delivery status and recipient RSVP status.
 - No Resend webhook processing yet for bounce, complaint, open, or click events.
