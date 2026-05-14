@@ -128,9 +128,14 @@ function hexValue(value: string, fallback: string) {
 const allowedEmailFonts = new Set([
   "Inter, Arial, Helvetica, sans-serif",
   "Arial, Helvetica, sans-serif",
+  "Helvetica, Arial, sans-serif",
+  "Tahoma, Geneva, sans-serif",
   "Georgia, Times, serif",
   "Verdana, Geneva, sans-serif",
-  "'Trebuchet MS', Arial, sans-serif"
+  "'Trebuchet MS', Arial, sans-serif",
+  "'Times New Roman', Times, serif",
+  "'Palatino Linotype', Palatino, serif",
+  "'Courier New', Courier, monospace"
 ]);
 
 function fontValue(value: string, fallback: string) {
@@ -724,9 +729,7 @@ export async function createCampaign(formData: FormData) {
   redirect(`/campaigns/${campaign.id}?created=1`);
 }
 
-export async function updateCampaignDraft(campaignId: string, formData: FormData) {
-  "use server";
-
+async function saveCampaignDraft(campaignId: string, formData: FormData, redirectTo: string) {
   const campaign = await getCampaign(campaignId);
 
   if (!campaign?.email_templates) {
@@ -768,7 +771,19 @@ export async function updateCampaignDraft(campaignId: string, formData: FormData
 
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${campaignId}`);
-  redirect(`/campaigns/${campaignId}?saved=1`);
+  redirect(redirectTo);
+}
+
+export async function updateCampaignDraft(campaignId: string, formData: FormData) {
+  "use server";
+
+  await saveCampaignDraft(campaignId, formData, `/campaigns/${campaignId}?saved=1`);
+}
+
+export async function updateCampaignDraftAndPreview(campaignId: string, formData: FormData) {
+  "use server";
+
+  await saveCampaignDraft(campaignId, formData, `/campaigns/${campaignId}/preview`);
 }
 
 export async function sendCampaignTestEmail(campaignId: string, formData: FormData) {

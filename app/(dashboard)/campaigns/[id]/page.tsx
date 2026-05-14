@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
-import { campaignRsvpSummary, getCampaign, getCampaignPreview, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft } from "@/lib/campaigns";
+import { campaignRsvpSummary, getCampaign, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft, updateCampaignDraftAndPreview } from "@/lib/campaigns";
 
 const mergeFields = ["{{first_name}}", "{{event_title}}", "{{event_date}}", "{{venue}}", "{{rsvp_link}}"];
 
@@ -19,10 +19,9 @@ export default async function CampaignDetailPage({
   searchParams: Promise<{ created?: string; error?: string; prepared?: string; saved?: string; sent?: string; test_sent?: string }>;
 }) {
   const { id } = await params;
-  const [{ created, error, prepared, saved, sent, test_sent: testSent }, campaign, preview, sendLogCount, recipients, user, membership] = await Promise.all([
+  const [{ created, error, prepared, saved, sent, test_sent: testSent }, campaign, sendLogCount, recipients, user, membership] = await Promise.all([
     searchParams,
     getCampaign(id),
-    getCampaignPreview(id),
     getCampaignSendLogCount(id),
     listCampaignRecipients(id),
     requireUser(),
@@ -34,6 +33,7 @@ export default async function CampaignDetailPage({
   }
 
   const updateAction = updateCampaignDraft.bind(null, campaign.id);
+  const previewAction = updateCampaignDraftAndPreview.bind(null, campaign.id);
   const prepareAction = prepareCampaignRecipients.bind(null, campaign.id);
   const sendAction = sendCampaign.bind(null, campaign.id);
   const testEmailAction = sendCampaignTestEmail.bind(null, campaign.id);
@@ -128,7 +128,13 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <CampaignBodyEditor defaultValue={campaign.email_templates.html_body} design={campaign.email_templates.design_data} mergeFields={mergeFields} orgId={membership.orgs.id} />
+              <CampaignBodyEditor
+                defaultValue={campaign.email_templates.html_body}
+                design={campaign.email_templates.design_data}
+                mergeFields={mergeFields}
+                orgId={membership.orgs.id}
+                previewAction={previewAction}
+              />
 
               <EmailTemplateControls design={campaign.email_templates.design_data} />
 
@@ -205,39 +211,6 @@ export default async function CampaignDetailPage({
         </div>
 
         <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
-          <Card className="overflow-hidden">
-            <div className="border-b border-line bg-[#ffe07a] px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[0.7rem] font-black uppercase tracking-[0.18em] text-night/55">Live email preview</p>
-                  <h2 className="mt-1 text-lg font-semibold text-night">Recipient view</h2>
-                </div>
-                <Button className="bg-white/88 text-night hover:bg-white" href={`/campaigns/${campaign.id}/preview`} variant="secondary">
-                  Full size
-                </Button>
-              </div>
-            </div>
-            <div className="p-5">
-              {preview ? (
-                <div className="rounded-[1.4rem] border border-line bg-white p-2 shadow-soft">
-                  <div className="rounded-[1.1rem] bg-field px-4 py-3">
-                    <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-muted">To: {preview.sampleEmail}</p>
-                    <p className="mt-1 text-sm font-semibold text-ink">{preview.subject}</p>
-                  </div>
-                  <iframe
-                    className="mt-3 h-[600px] w-full rounded-[1.1rem] border border-line bg-white"
-                    src={`/campaigns/${campaign.id}/email-preview`}
-                    title="Email preview"
-                  />
-                </div>
-              ) : (
-                <p className="rounded-2xl border border-dashed border-line bg-field px-4 py-8 text-center text-sm text-muted">
-                  Add invitees to preview merge fields.
-                </p>
-              )}
-            </div>
-          </Card>
-
           <Card className="p-5">
             <div className="flex items-center gap-2">
               <Send className="h-4 w-4 text-moss" />

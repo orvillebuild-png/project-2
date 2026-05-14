@@ -14,11 +14,13 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Email body.
 - Basic email design controls.
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
+- Campaign preview is opened intentionally from the message editor instead of running as a permanent side panel.
+- The message preview action saves the current draft before opening the full email preview.
 - Authenticated email preview route that renders the same HTML used by Resend.
 - Full-size email preview screen.
 - Email-safe template controls:
   - page, header, headline, accent, button text, body text, and muted color selection
-  - font family selection
+  - font family selection from common email-safe fonts in the message toolbar
   - uploaded image URL, alt text, and drag-adjusted image width
 - Shared campaign body editor for new drafts and later edits.
 - Body editor toolbar for undo, redo, bold, italic, underline-style strong text, link insertion, lists, quote snippets, and emoji insertion.
@@ -123,7 +125,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - The campaign editor follows the app's modern warm/yellow design direction.
 - The editor separates content authoring from operational sending controls.
 - Merge fields are always visible as chips while writing the message.
-- Preview sits beside the editor on desktop so changes are easier to reason about.
+- Preview opens from the message editor so the main campaign page stays focused on editing and delivery controls.
 - Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
 - Template controls intentionally use email-client-safe inline styles.
 - Image insertion uploads from the message toolbar and stores the public URL, alt text, and target width in template design JSON.

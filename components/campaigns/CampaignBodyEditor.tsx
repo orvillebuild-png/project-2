@@ -12,16 +12,31 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false
 });
 
+const fontOptions = [
+  { label: "Inter", value: "Inter, Arial, Helvetica, sans-serif" },
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Helvetica", value: "Helvetica, Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Trebuchet", value: "'Trebuchet MS', Arial, sans-serif" },
+  { label: "Georgia", value: "Georgia, Times, serif" },
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Palatino", value: "'Palatino Linotype', Palatino, serif" },
+  { label: "Courier New", value: "'Courier New', Courier, monospace" }
+];
+
 export function CampaignBodyEditor({
   defaultValue,
   design,
   mergeFields,
-  orgId
+  orgId,
+  previewAction
 }: {
   defaultValue: string;
   design: EmailDesignData;
   mergeFields: string[];
   orgId: string;
+  previewAction?: (formData: FormData) => void | Promise<void>;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [history, setHistory] = useState<string[]>([defaultValue]);
@@ -32,6 +47,7 @@ export function CampaignBodyEditor({
   const [imageWidth, setImageWidth] = useState(design.image_width);
   const [attachmentUrl, setAttachmentUrl] = useState(design.attachment_url);
   const [attachmentName, setAttachmentName] = useState(design.attachment_name);
+  const [fontFamily, setFontFamily] = useState(design.font_family);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -173,6 +189,7 @@ export function CampaignBodyEditor({
       <input name="image_width" type="hidden" value={imageWidth} />
       <input name="attachment_url" type="hidden" value={attachmentUrl} />
       <input name="attachment_name" type="hidden" value={attachmentName} />
+      <input name="font_family" type="hidden" value={fontFamily} />
       <input
         accept="image/png,image/jpeg,image/webp,image/gif"
         className="hidden"
@@ -188,16 +205,27 @@ export function CampaignBodyEditor({
         type="file"
       />
 
-      <div className="flex gap-3">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-night text-amber">
-          *
-        </span>
-        <div>
-          <h3 className="text-sm font-semibold text-ink">Message</h3>
-          <p className="mt-1 text-[0.78rem] leading-5 text-muted">
-            Write the campaign copy. Toolbar actions insert email-safe content into the message.
-          </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-night text-amber">
+            *
+          </span>
+          <div>
+            <h3 className="text-sm font-semibold text-ink">Message</h3>
+            <p className="mt-1 text-[0.78rem] leading-5 text-muted">
+              Write the email body. Images and attachments added here are included in the sent email.
+            </p>
+          </div>
         </div>
+        {previewAction ? (
+          <button
+            className="inline-flex h-9 items-center justify-center rounded-xl border border-line bg-white px-4 text-sm font-semibold text-ink transition hover:border-moss hover:text-moss"
+            formAction={previewAction}
+            type="submit"
+          >
+            Preview
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-4 flex flex-wrap items-start gap-2">
@@ -218,7 +246,16 @@ export function CampaignBodyEditor({
           <ToolButton label="Undo" onClick={undo}><Undo2 className="h-4 w-4" /></ToolButton>
           <ToolButton label="Redo" onClick={redo}><Redo2 className="h-4 w-4" /></ToolButton>
           <Divider />
-          <span className="h-8 rounded-full bg-white/70 px-3 py-2 text-xs font-semibold text-ink">Sans Serif</span>
+          <select
+            aria-label="Font family"
+            className="h-8 rounded-full border-0 bg-white/70 px-3 text-xs font-semibold text-ink outline-none focus:ring-2 focus:ring-moss/10"
+            onChange={(event) => setFontFamily(event.target.value)}
+            value={fontFamily}
+          >
+            {fontOptions.map((font) => (
+              <option key={font.value} value={font.value}>{font.label}</option>
+            ))}
+          </select>
           <Divider />
           <ToolButton label="Bold" onClick={() => wrap("**")}><Bold className="h-4 w-4" /></ToolButton>
           <ToolButton label="Italic" onClick={() => wrap("*")}><Italic className="h-4 w-4" /></ToolButton>
@@ -256,69 +293,72 @@ export function CampaignBodyEditor({
           <p className="mb-3 rounded-xl border border-line bg-field px-3 py-2 text-xs text-muted">{uploadStatus}</p>
         ) : null}
 
-        {imageUrl ? (
-          <div className="mb-3 rounded-2xl border border-line bg-field/70 p-3">
-            <div className="relative mx-auto max-w-full" style={{ width: `${Math.min(imageWidth, 640)}px` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img alt={imageAlt || "Campaign image"} className="block h-auto w-full rounded-xl border border-line bg-white object-contain" src={imageUrl} />
-              <button
-                aria-label="Resize image"
-                className="absolute -right-2 top-1/2 h-10 w-5 -translate-y-1/2 cursor-ew-resize rounded-full bg-night shadow-lift"
-                onPointerDown={startResize}
-                onPointerMove={resize}
-                onPointerUp={stopResize}
-                type="button"
-              />
-              <button
-                aria-label="Remove image"
-                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-ink shadow"
-                onClick={() => {
-                  setImageUrl("");
-                  setImageAlt("");
-                }}
-                type="button"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <input
-                className="h-9 min-w-0 flex-1 rounded-xl border border-line bg-white px-3 text-xs outline-none focus:border-moss"
-                onChange={(event) => setImageAlt(event.target.value)}
-                placeholder="Image alt text"
-                value={imageAlt}
-              />
-              <span className="text-xs font-semibold text-muted">{imageWidth}px</span>
-            </div>
-          </div>
-        ) : null}
-
-        {attachmentUrl ? (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-field px-3 py-2 text-xs text-muted">
-            <span className="min-w-0 truncate">Attached: {attachmentName || attachmentUrl}</span>
-            <button
-              className="font-semibold text-coral"
-              onClick={() => {
-                setAttachmentUrl("");
-                setAttachmentName("");
-              }}
-              type="button"
-            >
-              Remove
-            </button>
-          </div>
-        ) : null}
-
         <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
           Body
-          <textarea
-            className="min-h-80 rounded-2xl border border-line bg-field/70 px-4 py-4 text-[0.86rem] leading-6 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-            name="body"
-            onChange={(event) => setValue(event.target.value)}
-            ref={textareaRef}
-            required
-            value={value}
-          />
+          <div className="rounded-2xl border border-line bg-field/70 p-3 focus-within:border-moss focus-within:ring-2 focus-within:ring-moss/10">
+            {imageUrl ? (
+              <div className="mb-3 rounded-2xl border border-line bg-white/82 p-3">
+                <div className="relative mx-auto max-w-full" style={{ width: `${Math.min(imageWidth, 640)}px` }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt={imageAlt || "Campaign image"} className="block h-auto w-full rounded-xl border border-line bg-white object-contain" src={imageUrl} />
+                  <button
+                    aria-label="Resize image"
+                    className="absolute -right-2 top-1/2 h-10 w-5 -translate-y-1/2 cursor-ew-resize rounded-full bg-night shadow-lift"
+                    onPointerDown={startResize}
+                    onPointerMove={resize}
+                    onPointerUp={stopResize}
+                    type="button"
+                  />
+                  <button
+                    aria-label="Remove image"
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-ink shadow"
+                    onClick={() => {
+                      setImageUrl("");
+                      setImageAlt("");
+                    }}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <input
+                    className="h-9 min-w-0 flex-1 rounded-xl border border-line bg-white px-3 text-xs outline-none focus:border-moss"
+                    onChange={(event) => setImageAlt(event.target.value)}
+                    placeholder="Image alt text"
+                    value={imageAlt}
+                  />
+                  <span className="text-xs font-semibold text-muted">{imageWidth}px</span>
+                </div>
+              </div>
+            ) : null}
+
+            <textarea
+              className="min-h-80 w-full resize-y rounded-xl border-0 bg-transparent px-2 py-3 text-[0.86rem] leading-6 outline-none"
+              name="body"
+              onChange={(event) => setValue(event.target.value)}
+              ref={textareaRef}
+              required
+              style={{ fontFamily }}
+              value={value}
+            />
+
+            {attachmentUrl ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-line bg-white/82 px-3 py-2 text-xs text-muted">
+                <span className="min-w-0 truncate">Attached: {attachmentName || attachmentUrl}</span>
+                <button
+                  className="font-semibold text-coral"
+                  onClick={() => {
+                    setAttachmentUrl("");
+                    setAttachmentName("");
+                  }}
+                  type="button"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : null}
+          </div>
         </label>
       </div>
     </section>

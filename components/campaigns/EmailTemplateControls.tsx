@@ -3,14 +3,6 @@
 import { useState } from "react";
 import type { EmailDesignData } from "@/lib/campaigns";
 
-const fontOptions = [
-  { label: "Inter / Arial", value: "Inter, Arial, Helvetica, sans-serif" },
-  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
-  { label: "Georgia", value: "Georgia, Times, serif" },
-  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
-  { label: "Trebuchet", value: "'Trebuchet MS', Arial, sans-serif" }
-];
-
 export function EmailTemplateControls({
   design
 }: {
@@ -75,18 +67,6 @@ export function EmailTemplateControls({
             name="button_label"
             required
           />
-        </label>
-        <label className="grid gap-2 text-[0.78rem] font-semibold text-ink">
-          Font
-          <select
-            className="h-10 rounded-xl border border-line bg-white/90 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-            defaultValue={design.font_family}
-            name="font_family"
-          >
-            {fontOptions.map((font) => (
-              <option key={font.value} value={font.value}>{font.label}</option>
-            ))}
-          </select>
         </label>
       </div>
 
