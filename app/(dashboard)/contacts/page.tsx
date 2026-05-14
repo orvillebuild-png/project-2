@@ -31,6 +31,8 @@ export default async function ContactsPage({
     listTags(),
     listContactSources()
   ]);
+  const verifiedCount = contacts.filter((contact) => contact.email_status === "valid").length;
+  const organizationCount = new Set(contacts.map((contact) => contact.organization_name).filter(Boolean)).size;
 
   return (
     <>
@@ -51,7 +53,12 @@ export default async function ContactsPage({
         eyebrow="CRM"
         title="Contacts"
       />
-      <Card>
+      <section className="mb-5 grid gap-3 md:grid-cols-3">
+        <MetricCard label="Visible contacts" value={contacts.length} detail="Current filters" />
+        <MetricCard label="Verified email" value={verifiedCount} detail="Ready for campaigns" />
+        <MetricCard label="Organizations" value={organizationCount} detail="In this view" />
+      </section>
+      <Card className="overflow-hidden">
         <CardHeader
           action={
             <ContactFilters
@@ -71,13 +78,15 @@ export default async function ContactsPage({
           description={`Showing ${contacts.length} contact${contacts.length === 1 ? "" : "s"} in the current view`}
           title="Contact list"
         />
-        <div className="p-5">
+        <div className="p-4 sm:p-5">
           {filters.verified ? (
             <p className="mb-4 rounded-md border border-[#d7e9d9] bg-[#edf7f0] px-3 py-2 text-sm text-moss">
               Verified {filters.verified} selected contact{filters.verified === "1" ? "" : "s"}.
             </p>
           ) : null}
-          <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line/80 bg-field/70 px-3 py-3">
+            <p className="text-[0.78rem] font-semibold text-muted">CRM settings</p>
+            <div className="flex flex-wrap items-center gap-2">
             <Button className="h-9 px-3" href="/contacts/tags" variant="ghost">
               <Tags className="h-4 w-4" />
               Manage tags
@@ -86,6 +95,7 @@ export default async function ContactsPage({
               <Settings2 className="h-4 w-4" />
               Manage contact types
             </Button>
+            </div>
           </div>
           {contacts.length > 0 ? (
             <ContactTable
@@ -119,5 +129,15 @@ export default async function ContactsPage({
         </div>
       </Card>
     </>
+  );
+}
+
+function MetricCard({ detail, label, value }: { detail: string; label: string; value: number }) {
+  return (
+    <div className="surface-in rounded-[1.4rem] border border-white/70 bg-white/74 p-4 shadow-soft ring-1 ring-ink/5">
+      <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-moss">{label}</p>
+      <p className="mt-3 text-3xl font-semibold leading-none text-ink">{value}</p>
+      <p className="mt-2 text-[0.78rem] text-muted">{detail}</p>
+    </div>
   );
 }

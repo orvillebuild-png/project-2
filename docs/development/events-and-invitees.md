@@ -66,6 +66,17 @@ RSVP responses update attendance:
 - Invitee selection validates that selected contacts belong to the current organization.
 - Adding invitees uses upsert semantics so repeat selection does not duplicate attendance records.
 
+## UI Direction
+
+- Events should feel like an event builder, not a long form.
+- Current event presentation uses:
+  - event list metrics for published, draft, and multi-session events
+  - richer event cards with status/type badges, schedule, venue, and capacity
+  - parent event detail with a dark summary header and contained session list
+  - clearer form sections for basics, event structure, schedule, venue, and publishing
+  - add-session flow remains collapsed until requested so the parent detail page stays clean
+- Atomic CRM is used as a reference for dense operational layout, but event-specific flows remain custom to this product.
+
 ## Important Files
 
 - `app/(dashboard)/events/page.tsx`

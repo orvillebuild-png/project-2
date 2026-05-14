@@ -102,38 +102,38 @@ function DateTimeField({
   }
 
   return (
-    <fieldset className="rounded-lg border border-line bg-field p-4">
+    <fieldset className="rounded-2xl border border-line/90 bg-white/72 p-4">
       <legend className="px-1 text-sm font-semibold text-ink">{label}</legend>
       <input name={name} type="hidden" value={toHiddenValue(value)} />
       <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_5rem_6rem]">
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.month} onChange={(event) => update({ month: Number(event.target.value) })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.month} onChange={(event) => update({ month: Number(event.target.value) })}>
           {months.map((month, index) => (
             <option key={month} value={index + 1}>{month}</option>
           ))}
         </select>
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.day} onChange={(event) => update({ day: Number(event.target.value) })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.day} onChange={(event) => update({ day: Number(event.target.value) })}>
           {Array.from({ length: availableDays }, (_, index) => index + 1).map((day) => (
             <option key={day} value={day}>{day}</option>
           ))}
         </select>
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.year} onChange={(event) => update({ year: Number(event.target.value) })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.year} onChange={(event) => update({ year: Number(event.target.value) })}>
           {years.map((year) => (
             <option key={year} value={year}>{year}</option>
           ))}
         </select>
       </div>
       <div className="mt-3 grid grid-cols-[1fr_1fr_5rem] gap-3">
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.hour} onChange={(event) => update({ hour: Number(event.target.value) })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.hour} onChange={(event) => update({ hour: Number(event.target.value) })}>
           {Array.from({ length: 12 }, (_, index) => index + 1).map((hour) => (
             <option key={hour} value={hour}>{pad(hour)}</option>
           ))}
         </select>
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.minute} onChange={(event) => update({ minute: Number(event.target.value) })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.minute} onChange={(event) => update({ minute: Number(event.target.value) })}>
           {[0, 15, 30, 45].map((minute) => (
             <option key={minute} value={minute}>{pad(minute)}</option>
           ))}
         </select>
-        <select className="h-11 rounded-md border border-line bg-white px-3 text-sm outline-none focus:border-moss" value={value.period} onChange={(event) => update({ period: event.target.value as "AM" | "PM" })}>
+        <select className="h-11 rounded-xl border border-line bg-field px-3 text-sm outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" value={value.period} onChange={(event) => update({ period: event.target.value as "AM" | "PM" })}>
           <option value="AM">AM</option>
           <option value="PM">PM</option>
         </select>

@@ -50,15 +50,15 @@ export function EventSessionForm({
   }
 
   return (
-    <form action={action} className="mt-4 grid gap-4 rounded-lg border border-line bg-field p-4">
+    <form action={action} className="mt-4 grid gap-4 rounded-2xl border border-line/90 bg-[#fff8dc]/60 p-4 shadow-sm">
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Session name</span>
-          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" defaultValue={session?.title ?? ""} name="title" required placeholder="Morning session" />
+          <input className="h-11 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" defaultValue={session?.title ?? ""} name="title" required placeholder="Morning session" />
         </label>
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Capacity</span>
-          <input className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" defaultValue={session?.capacity ?? ""} min="0" name="capacity" type="number" />
+          <input className="h-11 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" defaultValue={session?.capacity ?? ""} min="0" name="capacity" type="number" />
         </label>
       </div>
       <EventDateTimeFields defaultEndsAt={session?.ends_at} defaultStartsAt={session?.starts_at} />
@@ -66,7 +66,7 @@ export function EventSessionForm({
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Venue name</span>
           <input
-            className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss"
+            className="h-11 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
             list="event-session-location-options"
             name="location_name"
             onChange={(event) => updateVenue(event.target.value)}
@@ -82,7 +82,7 @@ export function EventSessionForm({
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Venue address</span>
           <input
-            className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss"
+            className="h-11 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
             name="location_address"
             onChange={(event) => setVenueAddress(event.target.value)}
             value={venueAddress}

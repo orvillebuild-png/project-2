@@ -60,8 +60,22 @@ export default async function EventDetailPage({
         eyebrow="Events"
         title={event.title}
       />
-      <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
-        <Card className="p-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <Card className="overflow-hidden">
+          <div className="border-b border-line/80 bg-night px-5 py-5 text-white">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={event.status === "published" ? "green" : event.status === "cancelled" ? "coral" : "amber"}>
+                {event.status}
+              </Badge>
+              <span className="rounded-full bg-white/10 px-3 py-1 text-[0.72rem] font-bold capitalize text-white/72">
+                {event.type.replace("_", " ")}
+              </span>
+            </div>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/66">
+              {event.description || "Event setup is ready for schedule, venue, sessions, invitees, and campaign drafting."}
+            </p>
+          </div>
+          <div className="p-5">
           {error ? (
             <p className="mb-4 rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
               {error === "session_missing_fields" ? "Session name and venue are required." : decodeURIComponent(error)}
@@ -82,22 +96,15 @@ export default async function EventDetailPage({
               Session updated.
             </p>
           ) : null}
-          <div className="flex items-center gap-2">
-            <Badge tone={event.status === "published" ? "green" : event.status === "cancelled" ? "coral" : "amber"}>
-              {event.status}
-            </Badge>
-            <Badge>{event.type.replace("_", " ")}</Badge>
-          </div>
-          {event.description ? <p className="mt-4 text-sm leading-6 text-muted">{event.description}</p> : null}
           <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-line bg-field p-4">
-              <CalendarDays className="h-5 w-5 text-moss" />
+            <div className="rounded-2xl border border-line bg-field/72 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-moss"><CalendarDays className="h-5 w-5" /></span>
               <h2 className="mt-3 text-sm font-semibold text-ink">Schedule</h2>
               <p className="mt-2 text-sm text-muted">Starts: {eventDate(event.starts_at)}</p>
               <p className="mt-1 text-sm text-muted">Ends: {eventDate(event.ends_at)}</p>
             </div>
-            <div className="rounded-lg border border-line bg-field p-4">
-              <MapPin className="h-5 w-5 text-moss" />
+            <div className="rounded-2xl border border-line bg-field/72 p-4">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-moss"><MapPin className="h-5 w-5" /></span>
               <h2 className="mt-3 text-sm font-semibold text-ink">Venue</h2>
               <p className="mt-2 text-sm text-muted">{event.locations?.name ?? "Not set"}</p>
               {event.locations?.address ? <p className="mt-1 text-sm text-muted">{event.locations.address}</p> : null}
@@ -105,11 +112,16 @@ export default async function EventDetailPage({
           </div>
           {hasSessions ? (
             <div className="mt-6">
-              <h2 className="text-base font-semibold text-ink">{sessionLabel}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-ink">{sessionLabel}</h2>
+                  <p className="mt-1 text-sm text-muted">Sessions stay inside this parent event.</p>
+                </div>
+              </div>
               {sessions.length > 0 ? (
                 <div className="mt-3 grid gap-3">
                   {sessions.map((session) => (
-                    <div className="rounded-lg border border-line bg-field p-4" key={session.id}>
+                    <div className="rounded-2xl border border-line bg-white/80 p-4 shadow-sm" key={session.id}>
                       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                         <h3 className="text-sm font-semibold text-ink">{session.title}</h3>
                         <div className="flex items-center gap-3">
@@ -129,8 +141,9 @@ export default async function EventDetailPage({
               <EventSessionForm action={addSessionAction} collapsed locations={locations} />
             </div>
           ) : null}
+          </div>
         </Card>
-        <aside className="space-y-4">
+        <aside className="space-y-4 xl:sticky xl:top-5 xl:self-start">
           <Card className="p-5">
             <Users className="h-5 w-5 text-moss" />
             <h2 className="mt-3 text-base font-semibold text-ink">Invitees</h2>

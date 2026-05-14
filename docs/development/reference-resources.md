@@ -22,3 +22,10 @@ These repositories are project references only. They are not application depende
 - Use case: maintained drag-and-drop visual email editor for React.
 - Useful for: reusable campaign template design, image blocks, buttons, merge tags, email-safe exported HTML, and saved design JSON.
 - Project note: this is now an application dependency for the campaign builder. Store both exported HTML and Unlayer design JSON so drafts can be reopened visually.
+
+## Atomic CRM
+
+- URL: https://github.com/marmelab/atomic-crm
+- Use case: MIT-licensed CRM reference built with React, shadcn-style UI, and Supabase.
+- Useful for: contact/company UX, activity history, merge contacts, custom fields, import/export, and dense CRM layout patterns.
+- Project note: use as a design and architecture reference for CRM modules. If code is copied directly later, preserve the MIT license notice and attribution.

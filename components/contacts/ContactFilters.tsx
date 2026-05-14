@@ -1,5 +1,6 @@
 "use client";
 
+import { Filter, Search } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import type { ContactTag, ContactType } from "@/lib/contacts";
@@ -37,16 +38,19 @@ export function ContactFilters({
   }
 
   return (
-    <form ref={formRef} className="flex flex-col gap-2" action="/contacts">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center">
-        <input
-          className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss md:w-52"
-          defaultValue={search ?? ""}
-          name="search"
-          placeholder="Search contacts"
-        />
+    <form ref={formRef} className="flex w-full flex-col gap-2" action="/contacts">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-end">
+        <label className="relative min-w-0 flex-1 lg:max-w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input
+            className="h-10 w-full rounded-full border border-line bg-white/80 pl-9 pr-3 text-[0.82rem] outline-none transition focus:border-moss focus:bg-white focus:ring-2 focus:ring-moss/10"
+            defaultValue={search ?? ""}
+            name="search"
+            placeholder="Search people, email, org"
+          />
+        </label>
         <select
-          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+          className="h-10 rounded-full border border-line bg-white/80 px-3 text-[0.82rem] outline-none transition focus:border-moss focus:bg-white focus:ring-2 focus:ring-moss/10"
           defaultValue={selectedType ?? ""}
           name="type"
           onChange={applyDropdownFilter}
@@ -57,7 +61,7 @@ export function ContactFilters({
           ))}
         </select>
         <select
-          className="h-10 rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+          className="h-10 rounded-full border border-line bg-white/80 px-3 text-[0.82rem] outline-none transition focus:border-moss focus:bg-white focus:ring-2 focus:ring-moss/10"
           defaultValue={selectedTag ?? ""}
           name="tag"
           onChange={applyDropdownFilter}
@@ -67,12 +71,16 @@ export function ContactFilters({
             <option key={tag.id} value={tag.id}>{tag.name}</option>
           ))}
         </select>
-        <Button type="button" variant="secondary" onClick={() => setShowMore((current) => !current)}>More filters</Button>
+        <Button className="shrink-0" type="button" variant="secondary" onClick={() => setShowMore((current) => !current)}>
+          <Filter className="h-4 w-4" />
+          More
+        </Button>
       </div>
       {showMore ? (
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-line/80 bg-white/64 p-3 shadow-sm">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
           <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 w-full rounded-xl border border-line bg-field px-3 text-[0.82rem] outline-none focus:border-moss"
             defaultValue={selectedSource ?? ""}
             name="source"
             onChange={applyDropdownFilter}
@@ -83,7 +91,7 @@ export function ContactFilters({
             ))}
           </select>
           <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 w-full rounded-xl border border-line bg-field px-3 text-[0.82rem] outline-none focus:border-moss"
             defaultValue={selectedStatus ?? ""}
             name="status"
             onChange={applyDropdownFilter}
@@ -97,7 +105,7 @@ export function ContactFilters({
             <option value="invalid">Invalid</option>
           </select>
           <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 w-full rounded-xl border border-line bg-field px-3 text-[0.82rem] outline-none focus:border-moss"
             defaultValue={selectedSex ?? ""}
             name="sex"
             onChange={applyDropdownFilter}
@@ -108,7 +116,7 @@ export function ContactFilters({
             <option value="other">Other</option>
           </select>
           <select
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 w-full rounded-xl border border-line bg-field px-3 text-[0.82rem] outline-none focus:border-moss"
             defaultValue={selectedAge ?? ""}
             name="age"
             onChange={applyDropdownFilter}
@@ -124,11 +132,12 @@ export function ContactFilters({
             <option value="unknown">Unknown age</option>
           </select>
           <input
-            className="h-10 w-full rounded-md border border-line bg-field px-3 text-sm outline-none focus:border-moss"
+            className="h-10 w-full rounded-xl border border-line bg-field px-3 text-[0.82rem] outline-none focus:border-moss"
             defaultValue={selectedOrganization ?? ""}
             name="organization"
             placeholder="Organization"
           />
+          </div>
         </div>
       ) : (
         <>

@@ -101,6 +101,17 @@ Verification writes a row to `email_validations`, updates `contacts.email_status
 - Email verification uses Disify by default. Provider outages/rate limits fall back to the next configured checker.
 - Local verification errors default to `unknown` unless the address is clearly malformed or the domain has no MX records.
 
+## UI Direction
+
+- Contacts should feel like a modern CRM work surface, not a basic admin table.
+- Current contact list presentation uses:
+  - compact metric cards for visible contacts, verified emails, and organizations
+  - auto-submitting filter dropdowns with advanced filters tucked behind a compact toggle
+  - mobile contact cards instead of forcing a wide table into small screens
+  - desktop table with stronger borders, status chips, sticky bulk actions, and horizontal overflow protection
+  - row-count control outside advanced filters
+- Atomic CRM is the preferred reference for future CRM ergonomics because it is MIT-licensed and close to our React/Supabase stack.
+
 ## Important Files
 
 - `app/(dashboard)/contacts/page.tsx`

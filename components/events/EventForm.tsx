@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarDays, MapPin, RadioTower } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EventDateTimeFields } from "@/components/events/EventDateTimeFields";
 import { Button } from "@/components/ui/Button";
@@ -39,20 +40,33 @@ export function EventForm({
 
   return (
     <form action={action} className="grid gap-5">
+      <section className="rounded-2xl border border-line/90 bg-field/70 p-4">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-night text-amber"><CalendarDays className="h-4 w-4" /></span>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Event basics</h2>
+            <p className="text-[0.78rem] text-muted">Name the parent event and define what invitees will see.</p>
+          </div>
+        </div>
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Title</span>
-        <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={event?.title ?? ""} name="title" required placeholder="Fundraising gala" />
+        <input className="h-11 w-full rounded-xl border border-line bg-white/90 px-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" defaultValue={event?.title ?? ""} name="title" required placeholder="Fundraising gala" />
       </label>
-      <label className="space-y-2 text-sm font-medium text-ink">
+      <label className="mt-4 block space-y-2 text-sm font-medium text-ink">
         <span>Description</span>
-        <textarea className="min-h-28 w-full rounded-md border border-line bg-field px-3 py-3 outline-none focus:border-moss" defaultValue={event?.description ?? ""} name="description" placeholder="Private notes or public event summary" />
+        <textarea className="min-h-28 w-full rounded-xl border border-line bg-white/90 px-3 py-3 outline-none focus:border-moss focus:ring-2 focus:ring-moss/10" defaultValue={event?.description ?? ""} name="description" placeholder="Private notes or public event summary" />
       </label>
+      </section>
 
-      <fieldset className="rounded-lg border border-line bg-field p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">Event type</legend>
+      <fieldset className="rounded-2xl border border-line/90 bg-white/72 p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">Event structure</legend>
+        <div className="mt-1 flex items-start gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff8dc] text-ink"><RadioTower className="h-4 w-4" /></span>
+          <p className="text-[0.78rem] leading-5 text-muted">Choose whether this event has one schedule, repeats, or contains child sessions by time/location.</p>
+        </div>
         <div className="mt-3 grid gap-2 md:grid-cols-4">
           {eventTypeOptions.map(({ value, label }) => (
-            <label className="flex items-center gap-2 rounded-md border border-line bg-white px-3 py-3 text-sm font-medium text-ink" key={value}>
+            <label className="flex items-center gap-2 rounded-xl border border-line bg-field/70 px-3 py-3 text-sm font-medium text-ink transition has-[:checked]:border-moss has-[:checked]:bg-[#eaf5ef]" key={value}>
               <input
                 checked={eventType === value}
                 className="h-4 w-4 accent-moss"
@@ -68,7 +82,7 @@ export function EventForm({
         {eventType === "recurring" ? (
           <label className="mt-4 block space-y-2 text-sm font-medium text-ink">
             <span>Repeat pattern</span>
-            <select className="h-11 w-full rounded-md border border-line bg-white px-3 outline-none focus:border-moss" name="recurrence_rule" defaultValue="weekly">
+            <select className="h-11 w-full rounded-xl border border-line bg-white px-3 outline-none focus:border-moss" name="recurrence_rule" defaultValue="weekly">
               <option value="weekly">Weekly</option>
               <option value="biweekly">Every 2 weeks</option>
               <option value="monthly">Monthly</option>
@@ -76,12 +90,12 @@ export function EventForm({
           </label>
         ) : null}
         {eventType === "multi_location" ? (
-          <p className="mt-3 rounded-md border border-line bg-white px-3 py-2 text-sm text-muted">
+          <p className="mt-3 rounded-xl border border-line bg-field px-3 py-2 text-sm text-muted">
             This creates the parent event. Add one session per venue from the event detail page.
           </p>
         ) : null}
         {eventType === "multi_time" ? (
-          <p className="mt-3 rounded-md border border-line bg-white px-3 py-2 text-sm text-muted">
+          <p className="mt-3 rounded-xl border border-line bg-field px-3 py-2 text-sm text-muted">
             This creates the parent event. Add one session per time slot from the event detail page.
           </p>
         ) : null}
@@ -89,11 +103,19 @@ export function EventForm({
 
       <EventDateTimeFields defaultEndsAt={event?.ends_at} defaultStartsAt={event?.starts_at} />
 
+      <section className="rounded-2xl border border-line/90 bg-field/70 p-4">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-night text-amber"><MapPin className="h-4 w-4" /></span>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Venue and capacity</h2>
+            <p className="text-[0.78rem] text-muted">Known venues auto-fill their saved address.</p>
+          </div>
+        </div>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Venue name</span>
           <input
-            className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss"
+            className="h-11 w-full rounded-xl border border-line bg-white/90 px-3 outline-none focus:border-moss"
             list="event-location-options"
             name="location_name"
             onChange={(event) => updateVenue(event.target.value)}
@@ -108,24 +130,25 @@ export function EventForm({
         </label>
         <label className="space-y-2 text-sm font-medium text-ink">
           <span>Capacity</span>
-          <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={event?.capacity ?? ""} min="0" name="capacity" type="number" />
+          <input className="h-11 w-full rounded-xl border border-line bg-white/90 px-3 outline-none focus:border-moss" defaultValue={event?.capacity ?? ""} min="0" name="capacity" type="number" />
         </label>
       </div>
 
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Venue address</span>
         <input
-          className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss"
+          className="h-11 w-full rounded-xl border border-line bg-white/90 px-3 outline-none focus:border-moss"
           name="location_address"
           onChange={(event) => setVenueAddress(event.target.value)}
           placeholder="Street, city, country"
           value={venueAddress}
         />
       </label>
+      </section>
 
       <label className="space-y-2 text-sm font-medium text-ink">
         <span>Status</span>
-        <select className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="status" defaultValue={event?.status ?? "draft"}>
+        <select className="h-11 w-full rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" name="status" defaultValue={event?.status ?? "draft"}>
           <option value="draft">Draft</option>
           <option value="published">Published</option>
         </select>

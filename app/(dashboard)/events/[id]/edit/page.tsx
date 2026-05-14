@@ -29,7 +29,7 @@ export default async function EditEventPage({
   return (
     <>
       <PageHeader description="Update event details, schedule, venue, recurrence, and publication status." eyebrow="Events" title={`Edit ${event.title}`} />
-      <Card className="max-w-3xl p-5">
+      <Card className="max-w-4xl p-4 sm:p-5">
         {error ? (
           <p className="mb-4 rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
             {errorMessages[error] ?? decodeURIComponent(error)}
