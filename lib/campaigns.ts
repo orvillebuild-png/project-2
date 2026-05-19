@@ -66,6 +66,8 @@ export type CampaignRecipient = {
   contact_id: string;
   rsvp_token: string;
   delivery_status: "pending" | "delivered" | "bounced" | "complained";
+  opened_at: string | null;
+  clicked_at: string | null;
   sent_at: string | null;
   contacts: {
     first_name: string | null;
@@ -476,7 +478,7 @@ export async function listCampaignRecipients(campaignId: string) {
   const { supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
-    .select("id, contact_id, rsvp_token, delivery_status, sent_at, contacts(first_name, last_name, email, email_status), rsvp_responses(response, responded_at)")
+    .select("id, contact_id, rsvp_token, delivery_status, opened_at, clicked_at, sent_at, contacts(first_name, last_name, email, email_status), rsvp_responses(response, responded_at)")
     .eq("campaign_id", campaignId)
     .order("sent_at", { ascending: false, nullsFirst: false });
 
@@ -657,6 +659,25 @@ export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<
       </div>
     </div>
   `;
+}
+
+export function addCampaignTracking(html: string, rsvpToken: string, appUrl = absoluteAppUrl()) {
+  const baseUrl = appUrl.replace(/\/$/, "");
+  const clickBase = `${baseUrl}/api/campaigns/click/${encodeURIComponent(rsvpToken)}`;
+  const trackedHtml = html.replace(/href=(["'])(https?:\/\/[^"']+|\/[^"']+)\1/gi, (match, quote: string, rawUrl: string) => {
+    const absoluteUrl = rawUrl.startsWith("/") ? `${baseUrl}${rawUrl}` : rawUrl;
+
+    if (absoluteUrl.startsWith(`${baseUrl}/api/campaigns/`)) {
+      return match;
+    }
+
+    return `href=${quote}${clickBase}?url=${encodeURIComponent(absoluteUrl)}${quote}`;
+  });
+  const pixel = `<img src="${baseUrl}/api/campaigns/open/${encodeURIComponent(rsvpToken)}" width="1" height="1" alt="" style="display:none!important;width:1px;height:1px;opacity:0;border:0;" />`;
+
+  return trackedHtml.includes("</body>")
+    ? trackedHtml.replace("</body>", `${pixel}</body>`)
+    : `${trackedHtml}${pixel}`;
 }
 
 async function sendResendEmail({
@@ -969,6 +990,8 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
 
       const preview = buildPreviewFromContact(campaign, row.contact, row.rsvp_token, appUrl);
       await assertSenderAllowed(org.id, preview.design);
+      const html = addCampaignTracking(renderCampaignEmailHtml(preview), row.rsvp_token, appUrl);
+
       await sendResendEmail({
         attachment: preview.design.attachment_url ? {
           filename: preview.design.attachment_name || "attachment",
@@ -978,7 +1001,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
         from: senderFrom(preview.design, from),
         to: row.contact.email,
         subject: preview.subject,
-        html: renderCampaignEmailHtml(preview),
+        html,
         idempotencyKey: `campaign-${campaignId}-recipient-${row.id}`
       });
 

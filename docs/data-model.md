@@ -256,8 +256,8 @@ One row per contact per campaign send.
 | `contact_id` | uuid FK → `contacts.id` | Indexed |
 | `rsvp_token` | text UNIQUE | Random UUID used in `/rsvp/[token]` URL |
 | `delivery_status` | text | `pending`, `delivered`, `bounced`, `complained` |
-| `opened_at` | timestamptz | Set by Resend webhook on open event |
-| `clicked_at` | timestamptz | Set by Resend webhook on click event |
+| `opened_at` | timestamptz | Set by token-scoped open pixel when remote images load |
+| `clicked_at` | timestamptz | Set by token-scoped click redirect |
 | `sent_at` | timestamptz | |
 
 Index: `rsvp_token` (for O(1) RSVP page lookup).

@@ -132,6 +132,16 @@ Handling:
 - If a later recipient fails, the campaign returns to `draft` so remaining pending rows can be retried.
 - Resend requests use deterministic idempotency keys per recipient to reduce duplicate sends during retries.
 
+### Campaign open or click tracking missing
+
+Cause: Email client blocks remote images, a recipient does not click a tracked link, the tracking route lacks `SUPABASE_SERVICE_ROLE_KEY`, or an email was sent before tracking was added.
+
+Handling:
+
+- Open tracking uses `/api/campaigns/open/[token]` and only sets `opened_at` once.
+- Click tracking uses `/api/campaigns/click/[token]?url=...`, sets `clicked_at` once, and redirects only to `http` or `https` URLs.
+- Test emails and preview renders are intentionally not tracked so analytics reflect real campaign sends.
+
 ### Invalid or disposable campaign recipients
 
 Cause: One or more pending campaign recipients have `contacts.email_status` set to `invalid` or `disposable`.

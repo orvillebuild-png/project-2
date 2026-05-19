@@ -38,6 +38,11 @@ export default async function CampaignDetailPage({
   const testEmailAction = sendCampaignTestEmail.bind(null, campaign.id);
   const summary = campaignRsvpSummary(recipients);
   const pendingRecipients = recipients.filter((recipient) => recipient.delivery_status === "pending").length;
+  const deliveredRecipients = recipients.filter((recipient) => recipient.delivery_status === "delivered").length;
+  const openedRecipients = recipients.filter((recipient) => recipient.opened_at).length;
+  const clickedRecipients = recipients.filter((recipient) => recipient.clicked_at).length;
+  const openRate = deliveredRecipients > 0 ? Math.round((openedRecipients / deliveredRecipients) * 100) : 0;
+  const clickRate = deliveredRecipients > 0 ? Math.round((clickedRecipients / deliveredRecipients) * 100) : 0;
   const blockedEmailRecipients = recipients.filter((recipient) => {
     const status = recipient.contacts?.email_status;
     return recipient.delivery_status === "pending" && (status === "invalid" || status === "disposable");
@@ -75,7 +80,7 @@ export default async function CampaignDetailPage({
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <HeroMetric label="Recipients" value={campaign.recipient_count} />
               <HeroMetric label="Prepared" value={recipients.length} />
-              <HeroMetric label="Pending" value={pendingRecipients} />
+              <HeroMetric label="Opened" value={openedRecipients} />
             </div>
           </div>
         </div>
@@ -143,6 +148,24 @@ export default async function CampaignDetailPage({
           </Card>
 
           <Card>
+            <CardHeader description="Tracked from the email pixel and rewritten links in delivered campaign emails." title="Campaign engagement" />
+            <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+              {[
+                { label: "Delivered", value: deliveredRecipients, detail: "Recipient inbox attempts" },
+                { label: "Opened", value: openedRecipients, detail: `${openRate}% open rate` },
+                { label: "Clicked", value: clickedRecipients, detail: `${clickRate}% click rate` },
+                { label: "Pending", value: pendingRecipients, detail: "Not sent yet" }
+              ].map(({ detail, label, value }) => (
+                <div className="rounded-2xl border border-line bg-field/72 p-4" key={label}>
+                  <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">{label}</p>
+                  <p className="mt-3 text-3xl font-semibold leading-none text-ink">{value}</p>
+                  <p className="mt-2 text-xs text-muted">{detail}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card>
             <CardHeader description="Live response counts from prepared recipients." title="RSVP pulse" />
             <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
               {[
@@ -172,6 +195,7 @@ export default async function CampaignDetailPage({
                       <th className="px-4 py-3">Recipient</th>
                       <th className="px-4 py-3">Email</th>
                       <th className="px-4 py-3">Delivery</th>
+                      <th className="px-4 py-3">Engagement</th>
                       <th className="px-4 py-3">RSVP</th>
                       <th className="px-4 py-3">Link</th>
                     </tr>
@@ -187,6 +211,12 @@ export default async function CampaignDetailPage({
                           <EmailStatusBadge status={recipient.contacts?.email_status ?? "pending"} />
                         </td>
                         <td className="px-4 py-3 text-muted">{recipient.delivery_status}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            <Badge tone={recipient.opened_at ? "green" : "gray"}>{recipient.opened_at ? "opened" : "no open"}</Badge>
+                            <Badge tone={recipient.clicked_at ? "green" : "gray"}>{recipient.clicked_at ? "clicked" : "no click"}</Badge>
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <Badge tone={recipient.rsvp_responses?.response === "yes" ? "green" : recipient.rsvp_responses?.response === "no" ? "coral" : recipient.rsvp_responses?.response === "maybe" ? "amber" : "gray"}>
                             {recipient.rsvp_responses?.response ?? "pending"}
