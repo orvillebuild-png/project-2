@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { AlertTriangle, Mail, Send } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Mail, Send, XCircle } from "lucide-react";
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
 import { campaignRsvpSummary, getCampaign, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft, updateCampaignDraftAndPreview } from "@/lib/campaigns";
+import { isSenderDomainVerified } from "@/lib/settings";
 
 export default async function CampaignDetailPage({
   params,
@@ -63,6 +64,59 @@ export default async function CampaignDetailPage({
   }).length;
   const campaignTitle = campaign.name ?? campaign.email_templates.name;
   const eventTitle = campaign.events?.title ?? "the event";
+  const configuredFromEmail = campaign.email_templates.design_data.from_email.trim();
+  const customSenderVerified = configuredFromEmail
+    ? await isSenderDomainVerified(membership.orgs.id, configuredFromEmail).catch(() => false)
+    : null;
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  const sendBlocked = pendingRecipients === 0 || blockedEmailRecipients > 0 || campaign.status === "sending" || !emailConfigured || customSenderVerified === false;
+  const preflightItems: PreflightItem[] = [
+    {
+      detail: emailConfigured ? "Resend API and default sender are configured." : "Add RESEND_API_KEY and RESEND_FROM_EMAIL before sending.",
+      label: "Email provider",
+      status: emailConfigured ? "ready" : "blocked"
+    },
+    {
+      detail: configuredFromEmail
+        ? customSenderVerified
+          ? `${configuredFromEmail} uses a verified sender domain.`
+          : `${configuredFromEmail} needs a verified domain in Settings.`
+        : "Using the configured default Resend sender.",
+      label: "From address",
+      status: customSenderVerified === false ? "blocked" : "ready"
+    },
+    {
+      detail: recipients.length > 0 ? `${recipients.length} recipient record${recipients.length === 1 ? "" : "s"} prepared.` : "Generate RSVP links before sending.",
+      label: "RSVP links",
+      status: recipients.length > 0 ? "ready" : "blocked"
+    },
+    {
+      detail: pendingRecipients > 0 ? `${pendingRecipients} pending recipient${pendingRecipients === 1 ? "" : "s"} will be considered for send.` : "No pending recipients are available to send.",
+      label: "Pending recipients",
+      status: pendingRecipients > 0 ? "ready" : "blocked"
+    },
+    {
+      detail: blockedEmailRecipients > 0
+        ? `${blockedEmailRecipients} invalid or disposable recipient${blockedEmailRecipients === 1 ? "" : "s"} must be fixed.`
+        : "No pending recipients are marked invalid or disposable.",
+      label: "Blocked emails",
+      status: blockedEmailRecipients > 0 ? "blocked" : "ready"
+    },
+    {
+      detail: suppressedRecipients > 0
+        ? `${suppressedRecipients} suppressed recipient${suppressedRecipients === 1 ? " is" : "s are"} skipped automatically.`
+        : "No prepared recipients are currently suppressed.",
+      label: "Suppressions",
+      status: suppressedRecipients > 0 ? "warning" : "ready"
+    },
+    {
+      detail: unverifiedEmailRecipients > 0
+        ? `${unverifiedEmailRecipients} pending recipient${unverifiedEmailRecipients === 1 ? " is" : "s are"} not confirmed valid yet.`
+        : "Pending recipient email health looks ready.",
+      label: "Email health",
+      status: unverifiedEmailRecipients > 0 ? "warning" : "ready"
+    }
+  ];
 
   return (
     <div className="space-y-5">
@@ -346,6 +400,17 @@ export default async function CampaignDetailPage({
                 <p className="mt-2 text-xs leading-5 text-white/62">
                   Sends to {pendingRecipients} pending recipient{pendingRecipients === 1 ? "" : "s"} with prepared RSVP links.
                 </p>
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/8 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-white/52">Preflight</p>
+                    <Badge tone={sendBlocked ? "coral" : "green"}>{sendBlocked ? "Blocked" : "Ready"}</Badge>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {preflightItems.map((item) => (
+                      <PreflightRow item={item} key={item.label} />
+                    ))}
+                  </div>
+                </div>
                 {campaign.status === "sent" ? (
                   <p className="mt-3 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs text-white/78">
                     This campaign has been sent. New recipients can still be synced and sent later.
@@ -368,19 +433,43 @@ export default async function CampaignDetailPage({
                 <label className="mt-4 flex items-start gap-2 text-xs leading-5 text-white/70">
                   <input
                     className="mt-1 h-4 w-4 rounded border-line text-moss focus:ring-moss"
-                    disabled={pendingRecipients === 0 || blockedEmailRecipients > 0 || campaign.status === "sending"}
+                    disabled={sendBlocked}
                     name="confirm_send"
                     type="checkbox"
                   />
                   I understand this will send real email to every pending recipient.
                 </label>
-                <Button className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={pendingRecipients === 0 || blockedEmailRecipients > 0 || campaign.status === "sending"} type="submit">
+                <Button className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={sendBlocked} type="submit">
                   Send campaign
                 </Button>
               </form>
             </div>
           </Card>
         </CollapsibleRail>
+      </div>
+    </div>
+  );
+}
+
+type PreflightItem = {
+  detail: string;
+  label: string;
+  status: "ready" | "warning" | "blocked";
+};
+
+function PreflightRow({ item }: { item: PreflightItem }) {
+  const icon = item.status === "ready"
+    ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#9be7b1]" />
+    : item.status === "warning"
+      ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber" />
+      : <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#ffb8a8]" />;
+
+  return (
+    <div className="flex gap-2 rounded-xl border border-white/10 bg-night/50 px-3 py-2">
+      {icon}
+      <div>
+        <p className="text-xs font-semibold text-white">{item.label}</p>
+        <p className="mt-0.5 text-[0.72rem] leading-5 text-white/58">{item.detail}</p>
       </div>
     </div>
   );

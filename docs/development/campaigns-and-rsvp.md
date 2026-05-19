@@ -42,6 +42,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Campaign engagement summary for delivered, opened, clicked, and pending recipients.
 - Campaign delivery health summary for provider-processed delivery rate, pending, bounced, complaints, suppressed, and last provider update.
 - Recipient table exposes per-recipient delivery state, last provider activity, engagement state, RSVP state, and Resend email ID.
+- Campaign preflight checklist before real sends, covering provider config, sender verification, RSVP links, pending recipients, blocked emails, suppressions, and unverified email health.
 - Tokenized unsubscribe links in real campaign sends.
 - Suppressed contacts are skipped before Resend is called.
 - Resend webhook ingestion for delivered, opened, clicked, bounced, failed, complained, and suppressed events.
@@ -66,15 +67,16 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 7. User generates RSVP links.
 8. The app creates `send_log` records with unique `rsvp_token` values.
 9. User reviews recipient email statuses.
-10. User confirms the campaign send.
-11. The app sends only pending recipient rows through Resend.
-12. Each accepted email stores the Resend email ID and marks its `send_log` row as `delivered` with `sent_at`.
-13. Sent campaign HTML includes a 1x1 open pixel and rewrites HTTP links through a click redirect.
-14. Open and click events update `send_log.opened_at` and `send_log.clicked_at`.
-15. If the recipient unsubscribes, the public unsubscribe page writes a `contact_suppressions` row.
-16. Future sends mark suppressed pending rows as `suppressed` and skip them.
-17. Resend webhooks reconcile provider delivery events, bounces, complaints, and suppressions back into `send_log`.
-18. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
+10. User reviews the preflight checklist in the delivery console.
+11. User confirms the campaign send.
+12. The app sends only pending recipient rows through Resend.
+13. Each accepted email stores the Resend email ID and marks its `send_log` row as `delivered` with `sent_at`.
+14. Sent campaign HTML includes a 1x1 open pixel and rewrites HTTP links through a click redirect.
+15. Open and click events update `send_log.opened_at` and `send_log.clicked_at`.
+16. If the recipient unsubscribes, the public unsubscribe page writes a `contact_suppressions` row.
+17. Future sends mark suppressed pending rows as `suppressed` and skip them.
+18. Resend webhooks reconcile provider delivery events, bounces, complaints, and suppressions back into `send_log`.
+19. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
 
 ## RSVP Flow
 
@@ -100,6 +102,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Track open and click engagement from the campaign page.
 - Review delivery health after sending, including provider bounce/complaint feedback.
 - Inspect a recipient's Resend email ID when diagnosing provider delivery events.
+- Run preflight checks before real email leaves the system.
 - Let a recipient unsubscribe from future campaign email without logging in.
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
@@ -124,6 +127,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Public RSVP RPCs expose only token-scoped lookup and token-scoped response submission.
 - Test email sending requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
 - If email env vars are missing, the UI shows a setup error and does not attempt to send.
+- The preflight checklist blocks real sends when email provider config is missing, no pending recipients exist, RSVP links are not prepared, blocked emails exist, or a custom sender domain is unverified.
+- Suppressions and unverified email statuses are warning-level preflight items: they are visible, but suppressions are skipped automatically and unknown/risky/pending emails remain a user decision.
 - Campaign sending requires a confirmation checkbox.
 - Campaign sending only targets `send_log` rows with `delivery_status = pending`.
 - Campaign sending stops before Resend if pending recipients include `invalid` or `disposable` email statuses.
