@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase.admin";
+import { createClientForServer } from "@/lib/supabase";
 
 export async function GET(
   request: NextRequest,
@@ -10,22 +10,11 @@ export async function GET(
   const redirectUrl = safeRedirectUrl(rawUrl, request.nextUrl.origin);
 
   if (token) {
-    const supabase = createAdminClient();
-    const now = new Date().toISOString();
-    const { data } = await supabase
-      .from("send_log")
-      .select("id, opened_at, clicked_at")
-      .eq("rsvp_token", token)
-      .maybeSingle();
-
-    if (data?.id) {
-      await supabase
-        .from("send_log")
-        .update({
-          opened_at: data.opened_at ?? now,
-          clicked_at: data.clicked_at ?? now
-        })
-        .eq("id", data.id);
+    try {
+      const supabase = await createClientForServer();
+      await supabase.rpc("record_campaign_click", { token });
+    } catch {
+      // Tracking must never block the recipient from reaching the link.
     }
   }
 

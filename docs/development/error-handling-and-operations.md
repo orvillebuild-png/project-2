@@ -134,12 +134,13 @@ Handling:
 
 ### Campaign open or click tracking missing
 
-Cause: Email client blocks remote images, a recipient does not click a tracked link, the tracking route lacks `SUPABASE_SERVICE_ROLE_KEY`, or an email was sent before tracking was added.
+Cause: Email client blocks remote images, a recipient does not click a tracked link, the tracking RPC is unavailable, or an email was sent before tracking was added.
 
 Handling:
 
 - Open tracking uses `/api/campaigns/open/[token]` and only sets `opened_at` once.
 - Click tracking uses `/api/campaigns/click/[token]?url=...`, sets `clicked_at` once, and redirects only to `http` or `https` URLs.
+- The route calls token-scoped public RPCs and catches tracking failures so recipient email clients still receive the pixel or redirect.
 - Test emails and preview renders are intentionally not tracked so analytics reflect real campaign sends.
 
 ### Invalid or disposable campaign recipients

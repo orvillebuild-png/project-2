@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase.admin";
+import { createClientForServer } from "@/lib/supabase";
 
 const transparentGif = Buffer.from("R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==", "base64");
 
@@ -10,12 +10,12 @@ export async function GET(
   const { token } = await params;
 
   if (token) {
-    const supabase = createAdminClient();
-    await supabase
-      .from("send_log")
-      .update({ opened_at: new Date().toISOString() })
-      .eq("rsvp_token", token)
-      .is("opened_at", null);
+    try {
+      const supabase = await createClientForServer();
+      await supabase.rpc("record_campaign_open", { token });
+    } catch {
+      // Tracking must never break the recipient's email client.
+    }
   }
 
   return new NextResponse(transparentGif, {

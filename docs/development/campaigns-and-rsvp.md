@@ -120,6 +120,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - If a send fails partway through, already accepted recipients remain `delivered`; the campaign returns to `draft` so remaining pending recipients can be sent later.
 - If no pending recipients exist, the send action stops without calling Resend.
 - Tracking routes never expose contact or campaign data; they only update a matching token row and return a pixel or redirect.
+- Tracking writes go through `record_campaign_open` and `record_campaign_click`, both token-scoped public RPCs.
 - Click tracking only redirects to `http` or `https` URLs and falls back to the app origin for malformed values.
 
 ## UI Direction
