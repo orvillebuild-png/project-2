@@ -65,6 +65,7 @@ export type ContactMetrics = {
   total: number;
   verified: number;
   organizations: number;
+  suppressed: number;
 };
 
 export type ContactOrganization = {
@@ -73,6 +74,22 @@ export type ContactOrganization = {
   verified_count: number;
   donor_count: number;
   latest_contact_at: string;
+};
+
+export type ContactSuppression = {
+  id: string;
+  contact_id: string;
+  email: string;
+  reason: "unsubscribe" | "bounce" | "complaint" | "manual";
+  source_send_log_id: string | null;
+  created_at: string;
+  contacts: {
+    first_name: string | null;
+    last_name: string | null;
+    email: string;
+    organization_name: string | null;
+    email_status: string;
+  } | null;
 };
 
 const CONTACT_LIST_LIMITS = [20, 30, 40, 50] as const;
@@ -272,11 +289,11 @@ export async function getContactMetrics(): Promise<ContactMetrics> {
   const org = membership?.orgs;
 
   if (!org) {
-    return { total: 0, verified: 0, organizations: 0 };
+    return { total: 0, verified: 0, organizations: 0, suppressed: 0 };
   }
 
   const supabase = await createClientForServer();
-  const [totalResult, verifiedResult, organizationResult] = await Promise.all([
+  const [totalResult, verifiedResult, organizationResult, suppressedResult] = await Promise.all([
     supabase
       .from("contacts")
       .select("id", { count: "exact", head: true })
@@ -293,7 +310,11 @@ export async function getContactMetrics(): Promise<ContactMetrics> {
       .select("organization_name")
       .eq("org_id", org.id)
       .is("deleted_at", null)
-      .not("organization_name", "is", null)
+      .not("organization_name", "is", null),
+    supabase
+      .from("contact_suppressions")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org.id)
   ]);
 
   if (totalResult.error) {
@@ -308,6 +329,10 @@ export async function getContactMetrics(): Promise<ContactMetrics> {
     throw new Error(organizationResult.error.message);
   }
 
+  if (suppressedResult.error) {
+    throw new Error(suppressedResult.error.message);
+  }
+
   const organizations = new Set(
     (organizationResult.data ?? [])
       .map((row) => String(row.organization_name ?? "").trim().toLowerCase())
@@ -317,8 +342,107 @@ export async function getContactMetrics(): Promise<ContactMetrics> {
   return {
     total: totalResult.count ?? 0,
     verified: verifiedResult.count ?? 0,
-    organizations
+    organizations,
+    suppressed: suppressedResult.count ?? 0
   };
+}
+
+export async function listContactSuppressions(): Promise<ContactSuppression[]> {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contact_suppressions")
+    .select("id, contact_id, email, reason, source_send_log_id, created_at, contacts(first_name, last_name, email, organization_name, email_status)")
+    .eq("org_id", org.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []).map((row) => ({
+    ...row,
+    contacts: Array.isArray(row.contacts) ? row.contacts[0] ?? null : row.contacts ?? null
+  })) as ContactSuppression[];
+}
+
+export async function createManualSuppression(formData: FormData) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const email = formValue(formData, "email").toLowerCase();
+
+  if (!email) {
+    redirect("/contacts/suppressions?error=missing_email");
+  }
+
+  const supabase = await createClientForServer();
+  const { data: contact, error: contactError } = await supabase
+    .from("contacts")
+    .select("id, email")
+    .eq("org_id", org.id)
+    .is("deleted_at", null)
+    .ilike("email", email)
+    .maybeSingle();
+
+  if (contactError || !contact) {
+    redirect(`/contacts/suppressions?error=${encodeURIComponent(contactError?.message ?? "Contact email not found. Create or import the contact before suppressing it.")}`);
+  }
+
+  const { error } = await supabase
+    .from("contact_suppressions")
+    .upsert({
+      org_id: org.id,
+      contact_id: contact.id,
+      email: contact.email,
+      reason: "manual"
+    }, { onConflict: "org_id,contact_id" });
+
+  if (error) {
+    redirect(`/contacts/suppressions?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/suppressions");
+  redirect("/contacts/suppressions?created=1");
+}
+
+export async function removeContactSuppression(suppressionId: string) {
+  "use server";
+
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    redirect("/onboarding/create-org");
+  }
+
+  const supabase = await createClientForServer();
+  const { error } = await supabase
+    .from("contact_suppressions")
+    .delete()
+    .eq("org_id", org.id)
+    .eq("id", suppressionId);
+
+  if (error) {
+    redirect(`/contacts/suppressions?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/contacts");
+  revalidatePath("/contacts/suppressions");
+  redirect("/contacts/suppressions?removed=1");
 }
 
 export async function listContactOrganizations(): Promise<ContactOrganization[]> {

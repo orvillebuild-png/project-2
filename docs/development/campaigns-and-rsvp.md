@@ -191,4 +191,4 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Complex visual templates can produce larger Server Action payloads; the app raises the action body limit to support saved design JSON.
 - RSVP link is rendered as a CTA in preview and real sends.
 - Open tracking depends on email clients loading remote images; some clients block or proxy pixels.
-- Manual suppression management UI is not built yet; suppressions are currently created by unsubscribe links and respected during send.
+- Suppression management UI is available at `/contacts/suppressions`; suppressions are created by unsubscribe links, provider feedback, or manual admin action and respected during send.

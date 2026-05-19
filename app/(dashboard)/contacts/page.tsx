@@ -1,4 +1,4 @@
-import { Building2, Plus, Settings2, Tags, Upload } from "lucide-react";
+import { Ban, Building2, Plus, Settings2, Tags, Upload } from "lucide-react";
 import { ContactFilters } from "@/components/contacts/ContactFilters";
 import { ContactTable } from "@/components/contacts/ContactTable";
 import { RowLimitControl } from "@/components/contacts/RowLimitControl";
@@ -42,6 +42,10 @@ export default async function ContactsPage({
               <Building2 className="h-4 w-4" />
               Organizations
             </Button>
+            <Button href="/contacts/suppressions" variant="secondary">
+              <Ban className="h-4 w-4" />
+              Suppressions
+            </Button>
             <Button href="/contacts/import" variant="secondary">
               <Upload className="h-4 w-4" />
               Import
@@ -56,10 +60,11 @@ export default async function ContactsPage({
         eyebrow="CRM"
         title="Contacts"
       />
-      <section className="mb-5 grid gap-3 md:grid-cols-3">
+      <section className="mb-5 grid gap-3 md:grid-cols-4">
         <MetricCard label="Total contacts" value={metrics.total} detail={`${contacts.length} visible in this view`} />
         <MetricCard label="Verified email" value={metrics.verified} detail="Ready for campaigns" />
         <MetricCard label="Organizations" value={metrics.organizations} detail="Total linked accounts" />
+        <MetricCard label="Suppressed" value={metrics.suppressed} detail="Skipped during sends" />
       </section>
       <Card className="overflow-hidden">
         <CardHeader

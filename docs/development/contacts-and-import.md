@@ -26,6 +26,8 @@ Contacts are the central CRM records used for segmentation, event invitees, camp
   - email verification status
 - Row count control: 20, 30, 40, 50.
 - Contact history for imported/updated records.
+- Suppression management for bounced, complained, unsubscribed, and manually suppressed contacts.
+- Suppressed count on the main contact CRM metrics.
 
 ## Contact Fields
 
@@ -67,6 +69,9 @@ Implemented contact attributes include:
 - Verify selected emails before sending a campaign.
 - Filter all contacts from a specific import file.
 - Filter contacts by email status to find risky, pending, or invalid addresses.
+- Review suppressed contacts before sending campaigns.
+- Manually suppress an existing contact when they should not receive campaign email.
+- Remove a suppression after a contact explicitly asks to receive campaign email again.
 - Bulk tag a selected group.
 - Soft-delete incorrect contacts without destroying related history.
 
@@ -105,7 +110,7 @@ Verification writes a row to `email_validations`, updates `contacts.email_status
 
 - Contacts should feel like a modern CRM work surface, not a basic admin table.
 - Current contact list presentation uses:
-  - compact metric cards for visible contacts, verified emails, and organizations
+  - compact metric cards for total contacts, verified emails, organizations, and suppressions
   - auto-submitting filter dropdowns with advanced filters tucked behind a compact toggle
   - mobile contact cards instead of forcing a wide table into small screens
   - desktop table with stronger borders, status chips, sticky bulk actions, and horizontal overflow protection
@@ -117,6 +122,7 @@ Verification writes a row to `email_validations`, updates `contacts.email_status
 - `app/(dashboard)/contacts/page.tsx`
 - `app/(dashboard)/contacts/new/page.tsx`
 - `app/(dashboard)/contacts/[id]/page.tsx`
+- `app/(dashboard)/contacts/suppressions/page.tsx`
 - `app/(dashboard)/contacts/import/page.tsx`
 - `app/(dashboard)/contacts/import/submit/route.ts`
 - `app/(dashboard)/contacts/import/duplicates/route.ts`

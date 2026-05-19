@@ -17,7 +17,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 
 - Authentication and workspace creation.
 - Settings with organization profile, sender domain verification, and team invitation acceptance.
-- Contact management with tags, contact types, filtering, email verification, bulk tagging, soft delete, and history.
+- Contact management with tags, contact types, filtering, email verification, suppression management, bulk tagging, soft delete, and history.
 - CSV contact import with mapping, validation, duplicate handling, and import source tracking.
 - Event creation, editing, publish state, and session management.
 - Invitee selection from contacts.
