@@ -5,15 +5,24 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { createCampaign, listCampaignEventOptions, newCampaignDesignDefaults } from "@/lib/campaigns";
 import { getCurrentOrg } from "@/lib/auth";
+import { getLibraryTemplate, listLibraryTemplates } from "@/lib/templates";
 
 export default async function NewCampaignPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; template?: string }>;
 }) {
-  const [{ error }, events, membership] = await Promise.all([searchParams, listCampaignEventOptions(), getCurrentOrg()]);
+  const params = await searchParams;
+  const [{ error, template: templateId }, events, membership, templates] = await Promise.all([
+    Promise.resolve(params),
+    listCampaignEventOptions(),
+    getCurrentOrg(),
+    listLibraryTemplates()
+  ]);
+  const selectedTemplate = await getLibraryTemplate(templateId);
   const defaultEvent = events.find((event) => event.invitee_count > 0) ?? events[0];
-  const designDefaults = newCampaignDesignDefaults();
+  const designDefaults = selectedTemplate?.design_data ?? newCampaignDesignDefaults();
+  const defaultBody = selectedTemplate?.html_body ?? "Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you.";
 
   return (
     <>
@@ -42,6 +51,26 @@ export default async function NewCampaignPage({
             </p>
           ) : null}
           <section className="grid gap-4 rounded-2xl border border-line bg-field/70 p-4 md:grid-cols-2">
+            {templates.length > 0 ? (
+              <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
+                Start from template
+                <select
+                  className="h-10 rounded-xl border border-line bg-white/88 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
+                  defaultValue={selectedTemplate?.id ?? ""}
+                  name="template_picker"
+                >
+                  <option value="">Default invitation</option>
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs font-normal text-muted">
+                  To load a different template, use the Template Library Use template action.
+                </span>
+              </label>
+            ) : null}
             <label className="grid gap-2 text-[0.78rem] font-semibold text-ink md:col-span-2">
               Event
               <select
@@ -62,7 +91,7 @@ export default async function NewCampaignPage({
               Campaign name
               <input
                 className="h-10 rounded-xl border border-line bg-white/88 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue={defaultEvent ? `${defaultEvent.title} invitation campaign` : ""}
+                defaultValue={selectedTemplate?.name ? `${selectedTemplate.name} campaign` : defaultEvent ? `${defaultEvent.title} invitation campaign` : ""}
                 name="name"
                 placeholder="May donor dinner invite"
                 required
@@ -72,14 +101,14 @@ export default async function NewCampaignPage({
               Subject
               <input
                 className="h-10 rounded-xl border border-line bg-white/88 px-3 text-[0.85rem] outline-none focus:border-moss focus:ring-2 focus:ring-moss/10"
-                defaultValue="You're invited to {{event_title}}"
+                defaultValue={selectedTemplate?.subject ?? "You're invited to {{event_title}}"}
                 name="subject"
                 required
               />
             </label>
           </section>
           <VisualEmailBuilder
-            defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
+            defaultValue={defaultBody}
             design={designDefaults}
             orgId={membership?.orgs?.id ?? ""}
           />

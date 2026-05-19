@@ -200,16 +200,19 @@ Constraint: unique on `(event_id, contact_id)`.
 ---
 
 ### `email_templates`
-Reusable email templates per organization.
+Reusable and campaign-specific email templates per organization.
 
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid PK | |
 | `org_id` | uuid FK → `orgs.id` | |
 | `name` | text | Internal display name |
+| `description` | text | Optional library summary |
 | `subject` | text | Email subject line. May contain merge tags. |
 | `html_body` | text | Full HTML email body. May contain merge tags (`{{first_name}}` etc.) |
+| `design_data` | jsonb | Visual builder design JSON and email style controls |
 | `merge_tags` | jsonb | Array of merge tag keys used in this template |
+| `is_library_template` | boolean | True for templates shown in `/templates`; false for campaign draft copies |
 | `updated_at` | timestamptz | |
 
 ---

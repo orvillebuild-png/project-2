@@ -162,6 +162,8 @@ These are non-visible features that the product depends on.
 
 **Campaign delivery health** — Campaign detail shows delivery rate, opened/clicked counts, bounced/complained/suppressed counts, last provider update, and per-recipient provider IDs for troubleshooting.
 
+**Reusable template library** — Save email layouts as reusable templates, then start new campaigns from those templates while keeping each campaign's copy independently editable.
+
 **File and image storage** — Supabase Storage for org logos, card designer image assets, and exported invitation card PNGs. Served via CDN.
 
 **Scheduled jobs** — Inngest handles all time-based work: reminder emails, periodic re-validation, waitlist promotion, recurring event instance generation.

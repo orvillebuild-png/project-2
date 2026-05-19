@@ -176,7 +176,7 @@ function jsonRecordValue(value: string): Record<string, unknown> | null {
   }
 }
 
-function designDataFromForm(formData: FormData): EmailDesignData {
+export function emailDesignDataFromForm(formData: FormData): EmailDesignData {
   const defaults = defaultDesignData();
   const editorMode = formValue(formData, "editor_mode") === "visual" ? "visual" : "legacy";
 
@@ -206,7 +206,7 @@ function designDataFromForm(formData: FormData): EmailDesignData {
   };
 }
 
-function normalizeDesignData(value: unknown): EmailDesignData {
+export function normalizeEmailDesignData(value: unknown): EmailDesignData {
   const defaults = defaultDesignData();
   const data = typeof value === "object" && value !== null ? value as Partial<EmailDesignData> : {};
 
@@ -323,7 +323,7 @@ function normalizeCampaign(row: RawCampaignRow) {
     email_templates: template
       ? {
           ...template,
-          design_data: normalizeDesignData(template.design_data)
+          design_data: normalizeEmailDesignData(template.design_data)
         }
       : null
   } as CampaignListItem;
@@ -747,7 +747,7 @@ export async function createCampaign(formData: FormData) {
   const name = formValue(formData, "name");
   const subject = formValue(formData, "subject");
   const body = formValue(formData, "body");
-  const designData = designDataFromForm(formData);
+  const designData = emailDesignDataFromForm(formData);
 
   if (!eventId || !name || !subject || !body) {
     redirect("/campaigns/new?error=missing_fields");
@@ -825,7 +825,7 @@ async function saveCampaignDraft(campaignId: string, formData: FormData, redirec
   const subject = formValue(formData, "subject");
   const name = formValue(formData, "name");
   const body = formValue(formData, "body");
-  const designData = designDataFromForm(formData);
+  const designData = emailDesignDataFromForm(formData);
 
   if (!name || !subject || !body) {
     redirect(`/campaigns/${campaignId}?error=missing_fields`);
