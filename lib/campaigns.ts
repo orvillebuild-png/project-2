@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
+import { isSenderDomainVerified } from "@/lib/settings";
 
 export type CampaignListItem = {
   id: string;
@@ -264,6 +265,20 @@ function senderFrom(design: EmailDesignData, fallback: string) {
 
   const name = design.from_name.trim() || "Project 2";
   return `${name.replace(/[<>]/g, "")} <${email.replace(/[<>]/g, "")}>`;
+}
+
+async function assertSenderAllowed(orgId: string, design: EmailDesignData) {
+  const email = design.from_email.trim();
+
+  if (!email) {
+    return;
+  }
+
+  const verified = await isSenderDomainVerified(orgId, email);
+
+  if (!verified) {
+    throw new Error(`The sender domain for ${email} is not verified. Add and verify it in Settings before sending.`);
+  }
 }
 
 async function requireOrg() {
@@ -834,10 +849,16 @@ export async function sendCampaignTestEmail(campaignId: string, formData: FormDa
     redirect(`/campaigns/${campaignId}?error=email_not_configured`);
   }
 
-  const preview = await getCampaignPreview(campaignId);
+  const [preview, orgContext] = await Promise.all([getCampaignPreview(campaignId), requireOrg()]);
 
   if (!preview) {
     redirect(`/campaigns/${campaignId}?error=no_preview`);
+  }
+
+  try {
+    await assertSenderAllowed(orgContext.org.id, preview.design);
+  } catch (senderError) {
+    redirect(`/campaigns/${campaignId}?error=${encodeError(senderError instanceof Error ? senderError.message : "Sender domain is not verified")}`);
   }
 
   const html = renderCampaignEmailHtml({
@@ -899,7 +920,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
     redirect(`/campaigns/${campaignId}?error=email_not_configured`);
   }
 
-  const { supabase } = await requireOrg();
+  const { org, supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
     .select("id, contact_id, rsvp_token, delivery_status, contacts(id, first_name, last_name, email, email_status)")
@@ -947,6 +968,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
       }
 
       const preview = buildPreviewFromContact(campaign, row.contact, row.rsvp_token, appUrl);
+      await assertSenderAllowed(org.id, preview.design);
       await sendResendEmail({
         attachment: preview.design.attachment_url ? {
           filename: preview.design.attachment_name || "attachment",

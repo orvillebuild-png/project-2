@@ -28,7 +28,7 @@ export function ModulePage({
         title={title}
       />
       <Card>
-        <CardHeader description="Planned launch functionality from the Markdown specs." title={`${title} workspace`} />
+        <CardHeader description="Workspace controls and operational status." title={`${title} workspace`} />
         <div className="grid gap-3 p-5 md:grid-cols-2">
           {rows.map((row) => (
             <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-field p-4" key={row.label}>
@@ -39,8 +39,8 @@ export function ModulePage({
         </div>
         <div className="px-5 pb-5">
           <EmptyState
-            description="This page is part of the Phase 1 shell. The next passes connect it to Supabase, Inngest, Resend, Disify, and Lemon Squeezy."
-            title="Ready for implementation"
+            description="No records match this workspace yet."
+            title="Nothing to show"
           />
         </div>
       </Card>

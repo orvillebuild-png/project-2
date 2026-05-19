@@ -63,7 +63,7 @@ export default async function DashboardPage() {
         </Card>
 
         <Card className="order-1 xl:order-2">
-          <CardHeader description="Early product surfaces before live data is wired." title="Quick actions" />
+          <CardHeader description="Common workflows for daily CRM and campaign operations." title="Quick actions" />
           <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 xl:block xl:divide-y xl:divide-line xl:p-0">
             {[
               ["Import contacts", "/contacts/import"],

@@ -1,4 +1,4 @@
-import { Plus, Settings2, Tags, Upload } from "lucide-react";
+import { Building2, Plus, Settings2, Tags, Upload } from "lucide-react";
 import { ContactFilters } from "@/components/contacts/ContactFilters";
 import { ContactTable } from "@/components/contacts/ContactTable";
 import { RowLimitControl } from "@/components/contacts/RowLimitControl";
@@ -37,7 +37,11 @@ export default async function ContactsPage({
     <>
       <PageHeader
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button href="/contacts/organizations" variant="secondary">
+              <Building2 className="h-4 w-4" />
+              Organizations
+            </Button>
             <Button href="/contacts/import" variant="secondary">
               <Upload className="h-4 w-4" />
               Import
@@ -120,7 +124,7 @@ export default async function ContactsPage({
           ) : (
             <EmptyState
               actionLabel="Add contact"
-              description="Start with a single contact. CSV import, tags, filters, and validation jobs come next in Phase 2."
+              description="Start with a single contact, import a CSV, or organize people by tags, types, and organizations."
               href="/contacts/new"
               title="No contacts yet"
             />

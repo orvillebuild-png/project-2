@@ -13,7 +13,7 @@ export default async function CampaignsPage() {
     <>
       <PageHeader
         action={<Button href="/campaigns/new"><MailPlus className="h-4 w-4" />Campaign</Button>}
-        description="Draft event invitations, preview merge fields, and prepare RSVP recipient logs before sending is connected."
+        description="Draft event invitations, preview merge fields, prepare RSVP recipient logs, test, and send campaigns."
         eyebrow="Invitations"
         title="Campaigns"
       />
@@ -43,7 +43,7 @@ export default async function CampaignsPage() {
           ) : (
             <EmptyState
               actionLabel="Create campaign"
-              description="Start with an event that has selected invitees. The first version saves drafts and prepares pending RSVP records without sending email."
+              description="Start with an event that has selected invitees, then design the email and generate RSVP links."
               href="/campaigns/new"
               title="No campaigns yet"
             />

@@ -67,6 +67,14 @@ export type ContactMetrics = {
   organizations: number;
 };
 
+export type ContactOrganization = {
+  name: string;
+  contact_count: number;
+  verified_count: number;
+  donor_count: number;
+  latest_contact_at: string;
+};
+
 const CONTACT_LIST_LIMITS = [20, 30, 40, 50] as const;
 
 function contactListLimit(value?: string) {
@@ -311,6 +319,58 @@ export async function getContactMetrics(): Promise<ContactMetrics> {
     verified: verifiedResult.count ?? 0,
     organizations
   };
+}
+
+export async function listContactOrganizations(): Promise<ContactOrganization[]> {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return [];
+  }
+
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("organization_name, email_status, created_at, contact_types(name)")
+    .eq("org_id", org.id)
+    .is("deleted_at", null)
+    .not("organization_name", "is", null)
+    .order("organization_name", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const organizations = new Map<string, ContactOrganization>();
+
+  for (const row of data ?? []) {
+    const name = String(row.organization_name ?? "").trim();
+
+    if (!name) {
+      continue;
+    }
+
+    const current = organizations.get(name) ?? {
+      name,
+      contact_count: 0,
+      verified_count: 0,
+      donor_count: 0,
+      latest_contact_at: row.created_at as string
+    };
+    const contactType = row.contact_types as { name?: string } | { name?: string }[] | null;
+    const type = Array.isArray(contactType) ? contactType[0]?.name : contactType?.name;
+
+    current.contact_count += 1;
+    current.verified_count += row.email_status === "valid" ? 1 : 0;
+    current.donor_count += typeof type === "string" && type.toLowerCase().includes("donor") ? 1 : 0;
+    current.latest_contact_at = new Date(row.created_at as string) > new Date(current.latest_contact_at)
+      ? row.created_at as string
+      : current.latest_contact_at;
+    organizations.set(name, current);
+  }
+
+  return Array.from(organizations.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getContactHistory(contactId: string) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { EmailDesignData } from "@/lib/campaigns";
 
 export function EmailTemplateControls({
@@ -16,7 +17,7 @@ export function EmailTemplateControls({
         <div>
           <h3 className="text-sm font-semibold text-ink">Sender identity</h3>
           <p className="mt-1 text-[0.78rem] leading-5 text-muted">
-            Template layout, colors, fonts, images, and buttons are controlled inside the visual builder.
+            Custom from-addresses must use a verified sender domain in Settings before sending.
           </p>
         </div>
       </div>
@@ -42,6 +43,9 @@ export function EmailTemplateControls({
           />
         </label>
       </div>
+      <Link className="text-[0.78rem] font-semibold text-moss hover:underline" href="/settings">
+        Manage sender domains and DNS verification
+      </Link>
     </section>
   );
 }

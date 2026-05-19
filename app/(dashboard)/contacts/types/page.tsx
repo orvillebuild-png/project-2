@@ -19,7 +19,7 @@ export default async function ContactTypesPage({
     <>
       <PageHeader
         action={<Button href="/contacts" variant="secondary">Back to contacts</Button>}
-        description="Manage the primary identity dropdown for contacts. Tags will still be added next for flexible segmentation."
+        description="Manage the primary identity dropdown for contacts alongside tags and organization accounts."
         eyebrow="CRM"
         title="Contact types"
       />

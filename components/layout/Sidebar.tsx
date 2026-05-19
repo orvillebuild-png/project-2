@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Building2,
   CalendarDays,
   CreditCard,
   Home,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/contacts", label: "Contacts", icon: UsersRound },
+  { href: "/contacts/organizations", label: "Organizations", icon: Building2 },
   { href: "/events", label: "Events", icon: CalendarDays },
   { href: "/campaigns", label: "Campaigns", icon: Mail },
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
@@ -59,8 +61,8 @@ export function Sidebar() {
         </nav>
 
         <div className="mt-auto rounded-[1.25rem] border border-white/10 bg-white/[0.06] p-3">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-amber">Build mode</p>
-          <p className="mt-2 text-[0.78rem] leading-5 text-white/60">Design system refresh active.</p>
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-amber">Workspace</p>
+          <p className="mt-2 text-[0.78rem] leading-5 text-white/60">Contacts, events, campaigns, and sender setup.</p>
         </div>
       </div>
     </aside>
