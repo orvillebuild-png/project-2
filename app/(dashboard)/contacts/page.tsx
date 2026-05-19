@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { listContacts, listContactSources, listContactTypes, listTags } from "@/lib/contacts";
+import { getContactMetrics, listContacts, listContactSources, listContactTypes, listTags } from "@/lib/contacts";
 
 export default async function ContactsPage({
   searchParams
@@ -25,14 +25,13 @@ export default async function ContactsPage({
   }>;
 }) {
   const filters = await searchParams;
-  const [contacts, contactTypes, tags, sources] = await Promise.all([
+  const [contacts, contactTypes, tags, sources, metrics] = await Promise.all([
     listContacts(filters),
     listContactTypes(),
     listTags(),
-    listContactSources()
+    listContactSources(),
+    getContactMetrics()
   ]);
-  const verifiedCount = contacts.filter((contact) => contact.email_status === "valid").length;
-  const organizationCount = new Set(contacts.map((contact) => contact.organization_name).filter(Boolean)).size;
 
   return (
     <>
@@ -54,9 +53,9 @@ export default async function ContactsPage({
         title="Contacts"
       />
       <section className="mb-5 grid gap-3 md:grid-cols-3">
-        <MetricCard label="Visible contacts" value={contacts.length} detail="Current filters" />
-        <MetricCard label="Verified email" value={verifiedCount} detail="Ready for campaigns" />
-        <MetricCard label="Organizations" value={organizationCount} detail="In this view" />
+        <MetricCard label="Total contacts" value={metrics.total} detail={`${contacts.length} visible in this view`} />
+        <MetricCard label="Verified email" value={metrics.verified} detail="Ready for campaigns" />
+        <MetricCard label="Organizations" value={metrics.organizations} detail="Total linked accounts" />
       </section>
       <Card className="overflow-hidden">
         <CardHeader

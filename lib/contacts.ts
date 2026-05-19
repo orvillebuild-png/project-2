@@ -61,6 +61,12 @@ export type ContactHistoryItem = {
   created_at: string;
 };
 
+export type ContactMetrics = {
+  total: number;
+  verified: number;
+  organizations: number;
+};
+
 const CONTACT_LIST_LIMITS = [20, 30, 40, 50] as const;
 
 function contactListLimit(value?: string) {
@@ -251,6 +257,60 @@ export async function listContactSources() {
   }
 
   return Array.from(new Set((data ?? []).map((row) => row.source as string).filter(Boolean)));
+}
+
+export async function getContactMetrics(): Promise<ContactMetrics> {
+  const membership = await getCurrentOrg();
+  const org = membership?.orgs;
+
+  if (!org) {
+    return { total: 0, verified: 0, organizations: 0 };
+  }
+
+  const supabase = await createClientForServer();
+  const [totalResult, verifiedResult, organizationResult] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org.id)
+      .is("deleted_at", null),
+    supabase
+      .from("contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("org_id", org.id)
+      .is("deleted_at", null)
+      .eq("email_status", "valid"),
+    supabase
+      .from("contacts")
+      .select("organization_name")
+      .eq("org_id", org.id)
+      .is("deleted_at", null)
+      .not("organization_name", "is", null)
+  ]);
+
+  if (totalResult.error) {
+    throw new Error(totalResult.error.message);
+  }
+
+  if (verifiedResult.error) {
+    throw new Error(verifiedResult.error.message);
+  }
+
+  if (organizationResult.error) {
+    throw new Error(organizationResult.error.message);
+  }
+
+  const organizations = new Set(
+    (organizationResult.data ?? [])
+      .map((row) => String(row.organization_name ?? "").trim().toLowerCase())
+      .filter(Boolean)
+  ).size;
+
+  return {
+    total: totalResult.count ?? 0,
+    verified: verifiedResult.count ?? 0,
+    organizations
+  };
 }
 
 export async function getContactHistory(contactId: string) {

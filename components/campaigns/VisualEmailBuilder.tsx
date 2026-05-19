@@ -460,13 +460,22 @@ export function VisualEmailBuilder({
           onReady={onReady}
           options={{
             displayMode: "email",
+            defaultDevice: "desktop",
+            devices: ["desktop", "tablet", "mobile"],
             mergeTags,
             fonts: {
               showDefaultFonts: true,
               customFonts: editorFonts
             },
             appearance: {
-              theme: "modern_light"
+              theme: "modern_light",
+              panels: {
+                tools: {
+                  dock: "right",
+                  collapsible: true,
+                  forceUncollapseOnSelect: false
+                }
+              }
             }
           }}
           ref={editorRef}

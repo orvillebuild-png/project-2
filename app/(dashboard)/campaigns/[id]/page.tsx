@@ -3,6 +3,7 @@ import { Mail, Send } from "lucide-react";
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
+import { CollapsibleRail } from "@/components/layout/CollapsibleRail";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -80,7 +81,7 @@ export default async function CampaignDetailPage({
         </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_25rem]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="space-y-5">
           <Card className="overflow-hidden">
             <div className="border-b border-line/80 bg-white/50 px-5 py-4">
@@ -207,7 +208,7 @@ export default async function CampaignDetailPage({
           </Card>
         </div>
 
-        <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
+        <CollapsibleRail label="Delivery console">
           <Card className="p-5">
             <div className="flex items-center gap-2">
               <Send className="h-4 w-4 text-moss" />
@@ -275,7 +276,7 @@ export default async function CampaignDetailPage({
               </form>
             </div>
           </Card>
-        </aside>
+        </CollapsibleRail>
       </div>
     </div>
   );

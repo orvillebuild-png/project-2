@@ -22,7 +22,7 @@ export default async function CampaignFullPreviewPage({
           <h1 className="mt-2 text-2xl font-semibold">{campaign.name ?? campaign.email_templates?.name}</h1>
           <p className="mt-1 text-sm text-white/62">Rendered from the same HTML used by Resend sends.</p>
         </div>
-        <Button href={`/campaigns/${id}`} variant="secondary">Back to editor</Button>
+        <Button className="border-white/20 bg-white text-night hover:bg-amber" href={`/campaigns/${id}`} variant="secondary">Back to editor</Button>
       </section>
 
       <div className="rounded-[1.5rem] border border-line bg-white p-3 shadow-soft">

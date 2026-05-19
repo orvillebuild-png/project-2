@@ -1,23 +1,18 @@
-import { ArrowRight, CheckCircle2, Clock3, MailCheck, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Mail, MailCheck, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { getDashboardStats, type DashboardEvent } from "@/lib/dashboard";
 
-const metrics = [
-  { label: "Contacts", value: "0", detail: "Ready for import", icon: UsersRound, color: "bg-amber" },
-  { label: "Valid emails", value: "0", detail: "Disify checker active", icon: MailCheck, color: "bg-skywash" },
-  { label: "Upcoming events", value: "0", detail: "Create your first event", icon: Clock3, color: "bg-[#dff8ea]" },
-  { label: "Billing status", value: "Draft", detail: "Lemon Squeezy later", icon: CheckCircle2, color: "bg-night text-white" }
-];
+export default async function DashboardPage() {
+  const stats = await getDashboardStats();
+  const metrics = [
+    { label: "Contacts", value: stats.contacts.toLocaleString(), detail: "Total CRM records", icon: UsersRound, color: "bg-amber" },
+    { label: "Valid emails", value: stats.validEmails.toLocaleString(), detail: "Ready for campaigns", icon: MailCheck, color: "bg-skywash" },
+    { label: "Upcoming events", value: stats.upcomingEvents.toLocaleString(), detail: "Scheduled from today", icon: Clock3, color: "bg-[#dff8ea]" },
+    { label: "Campaigns", value: stats.campaigns.toLocaleString(), detail: "Drafts and sends", icon: Mail, color: "bg-night text-white" }
+  ];
 
-const tasks = [
-  "Connect Supabase and apply migrations",
-  "Build signup, login, and organization creation",
-  "Create first contact list with filtering",
-  "Connect Lemon Squeezy billing adapter"
-];
-
-export default function DashboardPage() {
   return (
     <>
       <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/70 bg-amber shadow-lift ring-1 ring-ink/5">
@@ -60,18 +55,11 @@ export default function DashboardPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="order-2 xl:order-1">
           <CardHeader
-            action={<Badge tone="green">Build sequence active</Badge>}
-            description="The product is being built to gates so every phase is independently visible and testable."
-            title="Launch path"
+            action={<Button className="h-8 px-3" href="/events" variant="secondary">Open events</Button>}
+            description="Quick view of upcoming event dates and venues."
+            title="Event calendar"
           />
-          <div className="grid gap-3 p-5 md:grid-cols-2">
-            {tasks.map((task, index) => (
-              <div className="rounded-2xl border border-line/80 bg-field/80 p-4" key={task}>
-                <p className="text-[0.68rem] font-bold uppercase tracking-[0.16em] text-moss">Step {index + 1}</p>
-                <p className="mt-2 text-[0.86rem] font-medium text-ink">{task}</p>
-              </div>
-            ))}
-          </div>
+          <CalendarPanel events={stats.upcoming} />
         </Card>
 
         <Card className="order-1 xl:order-2">
@@ -93,4 +81,112 @@ export default function DashboardPage() {
       </div>
     </>
   );
+}
+
+function CalendarPanel({ events }: { events: DashboardEvent[] }) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstDayOffset = monthStart.getDay();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const day = index - firstDayOffset + 1;
+    return day > 0 && day <= daysInMonth ? day : null;
+  });
+  const eventsByDay = new Map<number, DashboardEvent[]>();
+
+  for (const event of events) {
+    if (!event.starts_at) {
+      continue;
+    }
+
+    const date = new Date(event.starts_at);
+
+    if (date.getMonth() !== now.getMonth() || date.getFullYear() !== now.getFullYear()) {
+      continue;
+    }
+
+    const dayEvents = eventsByDay.get(date.getDate()) ?? [];
+    dayEvents.push(event);
+    eventsByDay.set(date.getDate(), dayEvents);
+  }
+
+  return (
+    <div className="grid gap-4 p-5 lg:grid-cols-[1fr_18rem]">
+      <div className="rounded-[1.4rem] border border-line/80 bg-field/70 p-3">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">This month</p>
+            <h3 className="mt-1 text-lg font-semibold text-ink">
+              {new Intl.DateTimeFormat("en", { month: "long", year: "numeric" }).format(now)}
+            </h3>
+          </div>
+          <CalendarDays className="h-5 w-5 text-moss" />
+        </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted">
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <span key={day}>{day}</span>)}
+        </div>
+        <div className="mt-2 grid grid-cols-7 gap-1">
+          {cells.map((day, index) => {
+            const dayEvents = day ? eventsByDay.get(day) ?? [] : [];
+            const isToday = day === now.getDate();
+
+            return (
+              <div
+                className={`min-h-16 rounded-xl border px-2 py-1 text-sm ${
+                  day
+                    ? isToday
+                      ? "border-amber bg-amber/30 text-ink"
+                      : dayEvents.length > 0
+                        ? "border-moss/30 bg-white text-ink"
+                        : "border-line/70 bg-white/50 text-muted"
+                    : "border-transparent"
+                }`}
+                key={`${day ?? "blank"}-${index}`}
+              >
+                {day ? (
+                  <>
+                    <span className="font-semibold">{day}</span>
+                    {dayEvents.length > 0 ? (
+                      <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-moss" />
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-moss">Upcoming</p>
+        {events.length > 0 ? events.map((event) => (
+          <a className="block rounded-2xl border border-line/80 bg-white/74 p-3 transition hover:-translate-y-0.5 hover:border-moss/40 hover:shadow-soft" href={`/events/${event.id}`} key={event.id}>
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-ink">{event.title}</p>
+              <Badge tone={event.status === "published" ? "green" : "amber"}>{event.status}</Badge>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-muted">{formatEventDate(event.starts_at)}</p>
+            <p className="mt-1 truncate text-xs text-muted">{event.locations?.name ?? "Location not set"}</p>
+          </a>
+        )) : (
+          <div className="rounded-2xl border border-dashed border-line bg-white/60 p-4 text-sm leading-6 text-muted">
+            No upcoming events yet.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatEventDate(value: string | null) {
+  if (!value) {
+    return "Date not set";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
