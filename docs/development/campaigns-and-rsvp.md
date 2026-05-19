@@ -40,6 +40,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Per-recipient delivery status updates after Resend accepts an email.
 - Per-recipient open and click tracking through token-scoped tracking routes.
 - Campaign engagement summary for delivered, opened, clicked, and pending recipients.
+- Tokenized unsubscribe links in real campaign sends.
+- Suppressed contacts are skipped before Resend is called.
 
 ## Supported Merge Fields
 
@@ -65,7 +67,9 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 12. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
 13. Sent campaign HTML includes a 1x1 open pixel and rewrites HTTP links through a click redirect.
 14. Open and click events update `send_log.opened_at` and `send_log.clicked_at`.
-15. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
+15. If the recipient unsubscribes, the public unsubscribe page writes a `contact_suppressions` row.
+16. Future sends mark suppressed pending rows as `suppressed` and skip them.
+17. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
 
 ## RSVP Flow
 
@@ -89,6 +93,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Test RSVP response loop without email sending.
 - Track pending/yes/maybe/no response status from the campaign page.
 - Track open and click engagement from the campaign page.
+- Let a recipient unsubscribe from future campaign email without logging in.
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
 - Compose the email in a focused studio layout instead of a single raw admin form.
@@ -122,6 +127,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Tracking routes never expose contact or campaign data; they only update a matching token row and return a pixel or redirect.
 - Tracking writes go through `record_campaign_open` and `record_campaign_click`, both token-scoped public RPCs.
 - Click tracking only redirects to `http` or `https` URLs and falls back to the app origin for malformed values.
+- Unsubscribe writes go through `unsubscribe_by_token`, a token-scoped public RPC.
+- Suppressed contacts are marked `suppressed` in `send_log` and are not sent to Resend.
 
 ## UI Direction
 
@@ -137,6 +144,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Attachments are included as Resend attachments when sending and also shown as a link in the email body.
 - `from_email` must be a sender/domain Resend is allowed to send from; otherwise Resend will reject the send.
 - Sent links are rewritten through `/api/campaigns/click/[token]`; previews and test emails are left untracked so testing does not pollute engagement analytics.
+- Real campaign sends append a small unsubscribe footer.
 - Delivery actions are grouped into one console:
   - RSVP link generation/sync
   - test email
@@ -152,6 +160,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - `app/(dashboard)/campaigns/[id]/preview/page.tsx`
 - `app/api/campaigns/open/[token]/route.ts`
 - `app/api/campaigns/click/[token]/route.ts`
+- `app/unsubscribe/[token]/page.tsx`
+- `lib/unsubscribe.ts`
 - `components/campaigns/CampaignBodyEditor.tsx`
 - `components/campaigns/EmailTemplateControls.tsx`
 - `app/rsvp/[token]/page.tsx`
@@ -167,3 +177,4 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - RSVP link is rendered as a CTA in preview and real sends.
 - No Resend webhook processing yet for bounce or complaint events.
 - Open tracking depends on email clients loading remote images; some clients block or proxy pixels.
+- Manual suppression management UI is not built yet; suppressions are currently created by unsubscribe links and respected during send.

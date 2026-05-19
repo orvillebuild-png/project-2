@@ -255,12 +255,35 @@ One row per contact per campaign send.
 | `campaign_id` | uuid FK → `send_campaigns.id` | Indexed |
 | `contact_id` | uuid FK → `contacts.id` | Indexed |
 | `rsvp_token` | text UNIQUE | Random UUID used in `/rsvp/[token]` URL |
-| `delivery_status` | text | `pending`, `delivered`, `bounced`, `complained` |
+| `delivery_status` | text | `pending`, `delivered`, `bounced`, `complained`, `suppressed` |
 | `opened_at` | timestamptz | Set by token-scoped open pixel when remote images load |
 | `clicked_at` | timestamptz | Set by token-scoped click redirect |
 | `sent_at` | timestamptz | |
 
 Index: `rsvp_token` (for O(1) RSVP page lookup).
+
+---
+
+### `contact_suppressions`
+One row per contact that should not receive future campaign email.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `org_id` | uuid FK -> `orgs.id` | Tenant owner |
+| `contact_id` | uuid FK -> `contacts.id` | Suppressed contact |
+| `email` | text | Email at the time suppression was created |
+| `reason` | text | `unsubscribe`, `bounce`, `complaint`, or `manual` |
+| `source_send_log_id` | uuid FK -> `send_log.id` | Campaign email that caused the suppression, when available |
+| `created_at` | timestamptz | |
+
+Constraint: unique on `(org_id, contact_id)`.
+
+RLS:
+
+- Org members can read and create suppressions.
+- Org members can update suppressions.
+- Only org admins can delete suppressions.
 
 ---
 
@@ -342,6 +365,10 @@ A single `events` table handles all event types via `parent_event_id`. Recurring
 
 ### Tokenized RSVP links
 `send_log.rsvp_token` is a unique random UUID generated per send. The hosted RSVP page URL is `/rsvp/[token]` — no contact ID is exposed in the URL. When the contact submits a response, the server looks up the token, finds the `send_log` row, and writes to `rsvp_responses`. This prevents token guessing and protects contact privacy.
+
+### Suppression and unsubscribe
+
+Campaign unsubscribe links use `/unsubscribe/[token]`, where the token is the recipient's `send_log.rsvp_token`. The public unsubscribe RPC only creates or updates a suppression row for the token-matched contact and organization. Future sends check `contact_suppressions` before calling Resend and mark matching pending rows as `suppressed`.
 
 ### `filter_snapshot` on campaigns
 `send_campaigns.filter_snapshot` (jsonb) stores the exact filter used when the campaign was sent. This means you can always audit "who was targeted and why" even if the contact list or tag assignments change afterward.

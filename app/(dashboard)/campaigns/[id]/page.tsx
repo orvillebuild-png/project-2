@@ -39,6 +39,7 @@ export default async function CampaignDetailPage({
   const summary = campaignRsvpSummary(recipients);
   const pendingRecipients = recipients.filter((recipient) => recipient.delivery_status === "pending").length;
   const deliveredRecipients = recipients.filter((recipient) => recipient.delivery_status === "delivered").length;
+  const suppressedRecipients = recipients.filter((recipient) => recipient.delivery_status === "suppressed").length;
   const openedRecipients = recipients.filter((recipient) => recipient.opened_at).length;
   const clickedRecipients = recipients.filter((recipient) => recipient.clicked_at).length;
   const openRate = deliveredRecipients > 0 ? Math.round((openedRecipients / deliveredRecipients) * 100) : 0;
@@ -154,7 +155,7 @@ export default async function CampaignDetailPage({
                 { label: "Delivered", value: deliveredRecipients, detail: "Recipient inbox attempts" },
                 { label: "Opened", value: openedRecipients, detail: `${openRate}% open rate` },
                 { label: "Clicked", value: clickedRecipients, detail: `${clickRate}% click rate` },
-                { label: "Pending", value: pendingRecipients, detail: "Not sent yet" }
+                { label: "Suppressed", value: suppressedRecipients, detail: "Unsubscribed or blocked" }
               ].map(({ detail, label, value }) => (
                 <div className="rounded-2xl border border-line bg-field/72 p-4" key={label}>
                   <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">{label}</p>
@@ -282,6 +283,11 @@ export default async function CampaignDetailPage({
                     This campaign has been sent. New recipients can still be synced and sent later.
                   </p>
                 ) : null}
+                {suppressedRecipients > 0 ? (
+                  <p className="mt-3 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs leading-5 text-white/72">
+                    {suppressedRecipients} recipient{suppressedRecipients === 1 ? " is" : "s are"} suppressed and will be skipped automatically.
+                  </p>
+                ) : null}
                 {blockedEmailRecipients > 0 ? (
                   <p className="mt-3 rounded-xl border border-[#ffb8a8]/40 bg-[#ffebe7]/10 px-3 py-2 text-xs leading-5 text-[#ffd4cc]">
                     {blockedEmailRecipients} pending recipient{blockedEmailRecipients === 1 ? " has" : "s have"} invalid or disposable email. Fix or remove them before sending.
@@ -358,8 +364,10 @@ function ErrorNotice({ error }: { error: string }) {
               ? "There are no pending recipients to send. Sync the recipient log first, or the campaign may already be sent."
               : error === "already_sending"
                 ? "This campaign is already sending."
-                : error === "invalid_email_recipients"
-                  ? "Some pending recipients have invalid or disposable emails. Fix or remove those contacts before sending."
+              : error === "invalid_email_recipients"
+                ? "Some pending recipients have invalid or disposable emails. Fix or remove those contacts before sending."
+                : error === "no_sendable_recipients"
+                  ? "All pending recipients are suppressed. Add new invitees or remove suppressions before sending."
                   : decodeURIComponent(error);
 
   return (

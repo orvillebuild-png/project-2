@@ -143,6 +143,17 @@ Handling:
 - The route calls token-scoped public RPCs and catches tracking failures so recipient email clients still receive the pixel or redirect.
 - Test emails and preview renders are intentionally not tracked so analytics reflect real campaign sends.
 
+### Recipient unsubscribed or suppressed
+
+Cause: Recipient clicked an unsubscribe link, bounced/complained later, or was manually suppressed in the database.
+
+Handling:
+
+- `/unsubscribe/[token]` works without login and writes a token-scoped `contact_suppressions` row.
+- Future campaign sends check suppressions before calling Resend.
+- Suppressed pending rows are marked `delivery_status = suppressed`.
+- A campaign send stops with `no_sendable_recipients` if every pending recipient is suppressed.
+
 ### Invalid or disposable campaign recipients
 
 Cause: One or more pending campaign recipients have `contacts.email_status` set to `invalid` or `disposable`.

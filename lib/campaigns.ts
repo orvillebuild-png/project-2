@@ -65,7 +65,7 @@ export type CampaignRecipient = {
   id: string;
   contact_id: string;
   rsvp_token: string;
-  delivery_status: "pending" | "delivered" | "bounced" | "complained";
+  delivery_status: "pending" | "delivered" | "bounced" | "complained" | "suppressed";
   opened_at: string | null;
   clicked_at: string | null;
   sent_at: string | null;
@@ -680,6 +680,21 @@ export function addCampaignTracking(html: string, rsvpToken: string, appUrl = ab
     : `${trackedHtml}${pixel}`;
 }
 
+export function addUnsubscribeFooter(html: string, rsvpToken: string, appUrl = absoluteAppUrl()) {
+  const unsubscribeUrl = `${appUrl.replace(/\/$/, "")}/unsubscribe/${encodeURIComponent(rsvpToken)}`;
+  const footer = `
+    <div style="margin:24px auto 0;max-width:640px;padding:18px 24px;text-align:center;color:#716f66;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;">
+      You are receiving this because you were invited to an event.
+      <br />
+      <a href="${escapeHtml(unsubscribeUrl)}" style="color:#1f6b5d;text-decoration:underline;">Unsubscribe from future campaign emails</a>
+    </div>
+  `;
+
+  return html.includes("</body>")
+    ? html.replace("</body>", `${footer}</body>`)
+    : `${html}${footer}`;
+}
+
 async function sendResendEmail({
   attachment,
   apiKey,
@@ -967,7 +982,38 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
     redirect(`/campaigns/${campaignId}?error=no_pending_recipients`);
   }
 
-  const blockedRows = rows.filter((row) => row.contact?.email_status === "invalid" || row.contact?.email_status === "disposable");
+  const contactIds = rows.map((row) => row.contact_id);
+  const { data: suppressions, error: suppressionsError } = await supabase
+    .from("contact_suppressions")
+    .select("contact_id")
+    .eq("org_id", org.id)
+    .in("contact_id", contactIds);
+
+  if (suppressionsError) {
+    redirect(`/campaigns/${campaignId}?error=${encodeError(suppressionsError.message)}`);
+  }
+
+  const suppressedContactIds = new Set((suppressions ?? []).map((row) => row.contact_id as string));
+  const suppressedRows = rows.filter((row) => suppressedContactIds.has(row.contact_id));
+  const sendableRows = rows.filter((row) => !suppressedContactIds.has(row.contact_id));
+
+  if (suppressedRows.length > 0) {
+    const { error: suppressedError } = await supabase
+      .from("send_log")
+      .update({ delivery_status: "suppressed" })
+      .in("id", suppressedRows.map((row) => row.id));
+
+    if (suppressedError) {
+      redirect(`/campaigns/${campaignId}?error=${encodeError(suppressedError.message)}`);
+    }
+  }
+
+  if (sendableRows.length === 0) {
+    revalidatePath(`/campaigns/${campaignId}`);
+    redirect(`/campaigns/${campaignId}?error=no_sendable_recipients`);
+  }
+
+  const blockedRows = sendableRows.filter((row) => row.contact?.email_status === "invalid" || row.contact?.email_status === "disposable");
 
   if (blockedRows.length > 0) {
     redirect(`/campaigns/${campaignId}?error=invalid_email_recipients`);
@@ -983,14 +1029,14 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
   }
 
   try {
-    for (const row of rows) {
+    for (const row of sendableRows) {
       if (!row.contact) {
         continue;
       }
 
       const preview = buildPreviewFromContact(campaign, row.contact, row.rsvp_token, appUrl);
       await assertSenderAllowed(org.id, preview.design);
-      const html = addCampaignTracking(renderCampaignEmailHtml(preview), row.rsvp_token, appUrl);
+      const html = addCampaignTracking(addUnsubscribeFooter(renderCampaignEmailHtml(preview), row.rsvp_token, appUrl), row.rsvp_token, appUrl);
 
       await sendResendEmail({
         attachment: preview.design.attachment_url ? {
@@ -1040,7 +1086,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
 
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${campaignId}`);
-  redirect(`/campaigns/${campaignId}?sent=${rows.length}`);
+  redirect(`/campaigns/${campaignId}?sent=${sendableRows.length}`);
 }
 
 export async function prepareCampaignRecipients(campaignId: string) {
