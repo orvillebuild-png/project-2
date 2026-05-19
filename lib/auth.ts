@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClientForServer } from "@/lib/supabase";
 
-export async function getSessionUser() {
+export const getSessionUser = cache(async function getSessionUser() {
   const supabase = await createClientForServer();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
   return user;
-}
+});
 
 export async function requireUser() {
   const user = await getSessionUser();
@@ -20,11 +21,9 @@ export async function requireUser() {
   return user;
 }
 
-export async function getCurrentOrg() {
+export const getCurrentOrg = cache(async function getCurrentOrg() {
   const supabase = await createClientForServer();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
 
   if (!user) {
     return null;
@@ -41,4 +40,4 @@ export async function getCurrentOrg() {
     role: string;
     orgs: { id: string; name: string; slug: string; plan_status: string } | null;
   } | null;
-}
+});
