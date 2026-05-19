@@ -42,6 +42,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Campaign engagement summary for delivered, opened, clicked, and pending recipients.
 - Tokenized unsubscribe links in real campaign sends.
 - Suppressed contacts are skipped before Resend is called.
+- Resend webhook ingestion for delivered, opened, clicked, bounced, failed, complained, and suppressed events.
+- Bounce and complaint feedback loop updates delivery status, contact email health, and suppression records.
 
 ## Supported Merge Fields
 
@@ -64,12 +66,13 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 9. User reviews recipient email statuses.
 10. User confirms the campaign send.
 11. The app sends only pending recipient rows through Resend.
-12. Each accepted email marks its `send_log` row as `delivered` with `sent_at`.
+12. Each accepted email stores the Resend email ID and marks its `send_log` row as `delivered` with `sent_at`.
 13. Sent campaign HTML includes a 1x1 open pixel and rewrites HTTP links through a click redirect.
 14. Open and click events update `send_log.opened_at` and `send_log.clicked_at`.
 15. If the recipient unsubscribes, the public unsubscribe page writes a `contact_suppressions` row.
 16. Future sends mark suppressed pending rows as `suppressed` and skip them.
-17. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
+17. Resend webhooks reconcile provider delivery events, bounces, complaints, and suppressions back into `send_log`.
+18. Campaign detail shows each recipient, email status, delivery status, engagement status, and RSVP status.
 
 ## RSVP Flow
 
@@ -124,6 +127,11 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Resend calls use deterministic idempotency keys per campaign recipient to reduce accidental duplicate sends during retries.
 - If a send fails partway through, already accepted recipients remain `delivered`; the campaign returns to `draft` so remaining pending recipients can be sent later.
 - If no pending recipients exist, the send action stops without calling Resend.
+- Resend webhooks require `RESEND_WEBHOOK_SECRET` and valid Svix signature headers.
+- Resend webhook database writes run through the Supabase service role after signature verification; the processing RPC is not public-callable.
+- Resend webhook deliveries are idempotent through `resend_webhook_events.id`, so retries do not double-apply state.
+- Bounce or failed events mark the send log as `bounced`, update the contact to `email_status = invalid`, write an `email_validations` row, and suppress future sends.
+- Complaint and provider suppression events mark the send log accordingly and create/update a suppression row.
 - Tracking routes never expose contact or campaign data; they only update a matching token row and return a pixel or redirect.
 - Tracking writes go through `record_campaign_open` and `record_campaign_click`, both token-scoped public RPCs.
 - Click tracking only redirects to `http` or `https` URLs and falls back to the app origin for malformed values.
@@ -160,7 +168,9 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - `app/(dashboard)/campaigns/[id]/preview/page.tsx`
 - `app/api/campaigns/open/[token]/route.ts`
 - `app/api/campaigns/click/[token]/route.ts`
+- `app/api/webhooks/resend/route.ts`
 - `app/unsubscribe/[token]/page.tsx`
+- `lib/resend-webhooks.ts`
 - `lib/unsubscribe.ts`
 - `components/campaigns/CampaignBodyEditor.tsx`
 - `components/campaigns/EmailTemplateControls.tsx`
@@ -172,9 +182,9 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 
 - Test email sending is available only when Resend env vars are configured.
 - Real campaign sending is available only when Resend env vars are configured.
+- Resend webhook feedback is active only after a Resend webhook is created and `RESEND_WEBHOOK_SECRET` is configured in the deployment environment.
 - Unlayer loads from its hosted editor script, so the builder requires network access while editing.
 - Complex visual templates can produce larger Server Action payloads; the app raises the action body limit to support saved design JSON.
 - RSVP link is rendered as a CTA in preview and real sends.
-- No Resend webhook processing yet for bounce or complaint events.
 - Open tracking depends on email clients loading remote images; some clients block or proxy pixels.
 - Manual suppression management UI is not built yet; suppressions are currently created by unsubscribe links and respected during send.

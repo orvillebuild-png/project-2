@@ -9,7 +9,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Database and auth: Supabase Auth, Postgres, RLS policies, and SQL migrations.
 - Repository: GitHub project `orvillebuild-png/project-2`.
 - Billing direction: Lemon Squeezy, not Stripe.
-- Email sending: Resend for test sends and guarded campaign sends.
+- Email sending: Resend for test sends, guarded campaign sends, and signed webhook feedback for delivery failures.
 - Email checking: Disify-first provider adapter with optional Reacher support and syntax/MX fallback.
 - Team invitations: Settings creates tokenized invites and the accept page creates workspace memberships after email-matched login.
 
@@ -29,6 +29,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Campaign RSVP summary counts.
 - Guarded Resend test email action.
 - Guarded Resend campaign send action.
+- Resend webhook reconciliation for delivered, opened, clicked, bounced, complained, failed, and suppressed events.
 - Parked invitation card designer prototype for a later add-on feature.
 
 ## Current Design Direction

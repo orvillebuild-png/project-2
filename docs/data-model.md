@@ -256,11 +256,31 @@ One row per contact per campaign send.
 | `contact_id` | uuid FK → `contacts.id` | Indexed |
 | `rsvp_token` | text UNIQUE | Random UUID used in `/rsvp/[token]` URL |
 | `delivery_status` | text | `pending`, `delivered`, `bounced`, `complained`, `suppressed` |
+| `resend_email_id` | text | Provider email ID returned by Resend, used to match webhooks |
 | `opened_at` | timestamptz | Set by token-scoped open pixel when remote images load |
 | `clicked_at` | timestamptz | Set by token-scoped click redirect |
+| `last_provider_event_at` | timestamptz | Last Resend webhook event processed for this row |
 | `sent_at` | timestamptz | |
 
 Index: `rsvp_token` (for O(1) RSVP page lookup).
+
+---
+
+### `resend_webhook_events`
+Idempotency and audit store for Resend webhook deliveries.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text PK | Svix webhook ID |
+| `type` | text | Resend event type, e.g. `email.bounced` |
+| `resend_email_id` | text | Provider email ID from payload |
+| `payload` | jsonb | Raw verified event body |
+| `processed_at` | timestamptz | |
+
+RLS:
+
+- Workspace members can read webhook events that match their campaign send logs.
+- Writes happen through the signed webhook route and token/provider-scoped RPC.
 
 ---
 

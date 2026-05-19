@@ -143,6 +143,26 @@ Handling:
 - The route calls token-scoped public RPCs and catches tracking failures so recipient email clients still receive the pixel or redirect.
 - Test emails and preview renders are intentionally not tracked so analytics reflect real campaign sends.
 
+### Resend webhook not processing
+
+Cause: The Resend webhook is not created, `RESEND_WEBHOOK_SECRET` is missing or wrong, Resend is posting to the wrong endpoint, the Svix signature headers are missing, or the event cannot be matched to a stored `send_log.resend_email_id`.
+
+Handling:
+
+- Production endpoint is `/api/webhooks/resend`.
+- Required events: `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.failed`, `email.complained`, and `email.suppressed`.
+- The route fails closed: missing secret returns 503, invalid signatures return 400, and unknown event types are ignored.
+- The database reconciliation RPC is not executable by `anon` or `authenticated`; only the signed Next.js route calls it with the Supabase service role.
+- Webhook IDs are stored in `resend_webhook_events`, so Resend retries are idempotent.
+- Bounce and failed events mark the recipient send as `bounced`, update the contact to `email_status = invalid`, write an `email_validations` row, and add a bounce suppression.
+- Complaint and suppressed events mark the recipient send accordingly and add a suppression.
+- Open/click provider events supplement the app's token-scoped tracking routes.
+
+Operational note:
+
+- The current Resend API key is send-only, so webhook creation must be done in the Resend dashboard or with a broader Resend API key.
+- After creating the webhook, copy its signing secret into Vercel as `RESEND_WEBHOOK_SECRET` and redeploy.
+
 ### Recipient unsubscribed or suppressed
 
 Cause: Recipient clicked an unsubscribe link, bounced/complained later, or was manually suppressed in the database.

@@ -91,7 +91,7 @@ All bulk operations run through Inngest: email sends, CSV imports, email validat
 ### Resend
 Transactional email provider. Clean REST API, high deliverability, generous free tier (3,000 emails/month), and reliable webhook delivery for bounce, complaint, open, and click events.
 
-Bounce and complaint webhooks POST to `/api/webhooks/resend`, which triggers an Inngest job to update `contacts.email_status` and `send_log.delivery_status`.
+Bounce and complaint webhooks POST to `/api/webhooks/resend`, verify the Resend/Svix signature, store the event idempotently, and update `contacts.email_status`, `send_log.delivery_status`, and suppressions through a database RPC.
 
 **Watch-out:** Configure DNS records (SPF, DKIM, DMARC) for every org sender domain before sending real email. Skipping this tanks deliverability and the reputation damage is very hard to recover from. Consider offering a shared platform sender domain (e.g. `invites.yourplatform.com`) as a fallback for orgs that cannot configure DNS.
 

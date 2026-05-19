@@ -526,12 +526,17 @@ Creates an invite token (72-hour expiry) and sends an email via Resend.
 ### `POST /api/webhooks/resend`
 **Auth:** public + Resend signature verification
 
-Processes Resend email events: `email.bounced`, `email.complained`, `email.opened`, `email.clicked`.
+Processes Resend email events: `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.failed`, `email.complained`, and `email.suppressed`.
 
-On bounce: updates `contacts.email_status=invalid`, writes `email_validations` row.
+The route verifies Svix headers with `RESEND_WEBHOOK_SECRET`, stores the webhook ID in `resend_webhook_events` for idempotency, then calls the database RPC through the Supabase service role. The RPC is not executable through the public Supabase API by `anon` or `authenticated`.
+
+On bounce or failure: updates `send_log.delivery_status=bounced`, updates `contacts.email_status=invalid`, writes an `email_validations` row, and creates a bounce suppression.
+
+On complaint or suppression: updates `send_log.delivery_status` and creates a suppression so future sends skip the recipient.
+
 On opened/clicked: updates `send_log.opened_at` or `send_log.clicked_at`.
 
-Always return HTTP 200 immediately. Heavy processing runs in an Inngest job triggered from this handler. Slow webhook responses cause Resend to retry and duplicate events.
+Missing webhook secret returns 503. Invalid signature returns 400. Unknown event types return 200 with `{ "ignored": true }`.
 
 ---
 

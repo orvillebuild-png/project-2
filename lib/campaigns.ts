@@ -732,6 +732,9 @@ async function sendResendEmail({
     const message = await response.text();
     throw new Error(message || "Failed to send email");
   }
+
+  const payload = await response.json().catch(() => null) as { id?: string; data?: { id?: string } } | null;
+  return payload?.id ?? payload?.data?.id ?? null;
 }
 
 export async function createCampaign(formData: FormData) {
@@ -1038,7 +1041,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
       await assertSenderAllowed(org.id, preview.design);
       const html = addCampaignTracking(addUnsubscribeFooter(renderCampaignEmailHtml(preview), row.rsvp_token, appUrl), row.rsvp_token, appUrl);
 
-      await sendResendEmail({
+      const resendEmailId = await sendResendEmail({
         attachment: preview.design.attachment_url ? {
           filename: preview.design.attachment_name || "attachment",
           path: preview.design.attachment_url
@@ -1055,6 +1058,7 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
         .from("send_log")
         .update({
           delivery_status: "delivered",
+          resend_email_id: resendEmailId,
           sent_at: new Date().toISOString()
         })
         .eq("id", row.id);
