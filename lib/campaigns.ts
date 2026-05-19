@@ -66,8 +66,10 @@ export type CampaignRecipient = {
   contact_id: string;
   rsvp_token: string;
   delivery_status: "pending" | "delivered" | "bounced" | "complained" | "suppressed";
+  resend_email_id?: string | null;
   opened_at: string | null;
   clicked_at: string | null;
+  last_provider_event_at?: string | null;
   sent_at: string | null;
   contacts: {
     first_name: string | null;
@@ -478,7 +480,7 @@ export async function listCampaignRecipients(campaignId: string) {
   const { supabase } = await requireOrg();
   const { data, error } = await supabase
     .from("send_log")
-    .select("id, contact_id, rsvp_token, delivery_status, opened_at, clicked_at, sent_at, contacts(first_name, last_name, email, email_status), rsvp_responses(response, responded_at)")
+    .select("id, contact_id, rsvp_token, delivery_status, resend_email_id, opened_at, clicked_at, last_provider_event_at, sent_at, contacts(first_name, last_name, email, email_status), rsvp_responses(response, responded_at)")
     .eq("campaign_id", campaignId)
     .order("sent_at", { ascending: false, nullsFirst: false });
 

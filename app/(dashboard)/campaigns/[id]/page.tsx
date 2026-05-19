@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Mail, Send } from "lucide-react";
+import { AlertTriangle, Mail, Send } from "lucide-react";
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
 import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
@@ -39,11 +39,20 @@ export default async function CampaignDetailPage({
   const summary = campaignRsvpSummary(recipients);
   const pendingRecipients = recipients.filter((recipient) => recipient.delivery_status === "pending").length;
   const deliveredRecipients = recipients.filter((recipient) => recipient.delivery_status === "delivered").length;
+  const bouncedRecipients = recipients.filter((recipient) => recipient.delivery_status === "bounced").length;
+  const complainedRecipients = recipients.filter((recipient) => recipient.delivery_status === "complained").length;
   const suppressedRecipients = recipients.filter((recipient) => recipient.delivery_status === "suppressed").length;
   const openedRecipients = recipients.filter((recipient) => recipient.opened_at).length;
   const clickedRecipients = recipients.filter((recipient) => recipient.clicked_at).length;
+  const attemptedRecipients = deliveredRecipients + bouncedRecipients + complainedRecipients;
+  const deliveryRate = attemptedRecipients > 0 ? Math.round((deliveredRecipients / attemptedRecipients) * 100) : 0;
   const openRate = deliveredRecipients > 0 ? Math.round((openedRecipients / deliveredRecipients) * 100) : 0;
   const clickRate = deliveredRecipients > 0 ? Math.round((clickedRecipients / deliveredRecipients) * 100) : 0;
+  const lastProviderEvent = recipients
+    .map((recipient) => recipient.last_provider_event_at ?? recipient.sent_at)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? null;
   const blockedEmailRecipients = recipients.filter((recipient) => {
     const status = recipient.contacts?.email_status;
     return recipient.delivery_status === "pending" && (status === "invalid" || status === "disposable");
@@ -167,6 +176,50 @@ export default async function CampaignDetailPage({
           </Card>
 
           <Card>
+            <CardHeader
+              description="Provider feedback from Resend webhooks, unsubscribe suppression, and campaign send state."
+              title="Delivery health"
+            />
+            <div className="grid gap-3 p-5 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-2xl border border-line bg-field/72 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">Deliverability</p>
+                    <p className="mt-3 text-4xl font-semibold leading-none text-ink">{deliveryRate}%</p>
+                    <p className="mt-2 text-xs text-muted">
+                      {deliveredRecipients} delivered from {attemptedRecipients} provider-processed recipient{attemptedRecipients === 1 ? "" : "s"}.
+                    </p>
+                  </div>
+                  <Badge tone={bouncedRecipients > 0 || complainedRecipients > 0 ? "amber" : "green"}>
+                    {bouncedRecipients > 0 || complainedRecipients > 0 ? "Needs review" : "Clean"}
+                  </Badge>
+                </div>
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/70">
+                  <div className="h-full rounded-full bg-moss" style={{ width: `${deliveryRate}%` }} />
+                </div>
+                <p className="mt-3 text-xs text-muted">
+                  Last provider update: {lastProviderEvent ? formatCompactDate(lastProviderEvent) : "No webhook events yet"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <DeliveryTile label="Pending" tone="gray" value={pendingRecipients} />
+                <DeliveryTile label="Bounced" tone={bouncedRecipients > 0 ? "coral" : "gray"} value={bouncedRecipients} />
+                <DeliveryTile label="Complaints" tone={complainedRecipients > 0 ? "coral" : "gray"} value={complainedRecipients} />
+                <DeliveryTile label="Suppressed" tone={suppressedRecipients > 0 ? "amber" : "gray"} value={suppressedRecipients} />
+              </div>
+            </div>
+            {bouncedRecipients > 0 || complainedRecipients > 0 ? (
+              <div className="mx-5 mb-5 flex gap-3 rounded-2xl border border-[#f3c2b8] bg-[#fff0ed] p-4 text-sm leading-6 text-coral">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Review bounced or complained recipients before the next send. They are automatically suppressed, and bounced contacts are marked invalid.
+                </p>
+              </div>
+            ) : null}
+          </Card>
+
+          <Card>
             <CardHeader description="Live response counts from prepared recipients." title="RSVP pulse" />
             <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
               {[
@@ -190,13 +243,14 @@ export default async function CampaignDetailPage({
             />
             <div className="overflow-x-auto p-5">
               {recipients.length > 0 ? (
-                <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                <table className="w-full min-w-[980px] border-collapse text-left text-sm">
                   <thead className="bg-field text-[0.68rem] font-black uppercase tracking-[0.18em] text-muted">
                     <tr>
                       <th className="px-4 py-3">Recipient</th>
                       <th className="px-4 py-3">Email</th>
                       <th className="px-4 py-3">Delivery</th>
                       <th className="px-4 py-3">Engagement</th>
+                      <th className="px-4 py-3">Provider</th>
                       <th className="px-4 py-3">RSVP</th>
                       <th className="px-4 py-3">Link</th>
                     </tr>
@@ -211,12 +265,26 @@ export default async function CampaignDetailPage({
                         <td className="px-4 py-3">
                           <EmailStatusBadge status={recipient.contacts?.email_status ?? "pending"} />
                         </td>
-                        <td className="px-4 py-3 text-muted">{recipient.delivery_status}</td>
+                        <td className="px-4 py-3">
+                          <Badge tone={deliveryTone(recipient.delivery_status)}>{recipient.delivery_status}</Badge>
+                          <p className="mt-1 text-xs text-muted">
+                            {recipient.last_provider_event_at
+                              ? formatCompactDate(recipient.last_provider_event_at)
+                              : recipient.sent_at
+                                ? formatCompactDate(recipient.sent_at)
+                                : "Not sent"}
+                          </p>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
                             <Badge tone={recipient.opened_at ? "green" : "gray"}>{recipient.opened_at ? "opened" : "no open"}</Badge>
                             <Badge tone={recipient.clicked_at ? "green" : "gray"}>{recipient.clicked_at ? "clicked" : "no click"}</Badge>
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="max-w-[13rem] truncate text-xs text-muted" title={recipient.resend_email_id ?? undefined}>
+                            {recipient.resend_email_id ?? "No Resend ID yet"}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
                           <Badge tone={recipient.rsvp_responses?.response === "yes" ? "green" : recipient.rsvp_responses?.response === "no" ? "coral" : recipient.rsvp_responses?.response === "maybe" ? "amber" : "gray"}>
@@ -325,6 +393,48 @@ function HeroMetric({ label, value }: { label: string; value: number }) {
       <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-white/45">{label}</p>
     </div>
   );
+}
+
+function DeliveryTile({
+  label,
+  tone,
+  value
+}: {
+  label: string;
+  tone: "green" | "amber" | "coral" | "gray";
+  value: number;
+}) {
+  return (
+    <div className="rounded-2xl border border-line bg-field/72 p-4">
+      <Badge tone={tone}>{label}</Badge>
+      <p className="mt-3 text-3xl font-semibold leading-none text-ink">{value}</p>
+    </div>
+  );
+}
+
+function deliveryTone(status: string): "green" | "amber" | "coral" | "gray" {
+  if (status === "delivered") {
+    return "green";
+  }
+
+  if (status === "bounced" || status === "complained") {
+    return "coral";
+  }
+
+  if (status === "suppressed") {
+    return "amber";
+  }
+
+  return "gray";
+}
+
+function formatCompactDate(value: string) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
 }
 
 function SectionTitle({

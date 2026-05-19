@@ -158,7 +158,9 @@ These are non-visible features that the product depends on.
 
 **Authentication and sessions** — Supabase Auth with email+password and magic link login. JWT sessions with `org_id` and `role` custom claims. Next.js middleware protects all dashboard routes.
 
-**Email send queue** — Inngest job queue fans out one send job per recipient. Resend handles delivery. Rate-limited to avoid SMTP blocks. Bounce and complaint events return via Resend webhooks.
+**Email send queue** — Campaign sends fan out one provider request per pending recipient. Resend handles delivery. Provider IDs are stored per recipient, and bounce/complaint/suppression events return via Resend webhooks.
+
+**Campaign delivery health** — Campaign detail shows delivery rate, opened/clicked counts, bounced/complained/suppressed counts, last provider update, and per-recipient provider IDs for troubleshooting.
 
 **File and image storage** — Supabase Storage for org logos, card designer image assets, and exported invitation card PNGs. Served via CDN.
 

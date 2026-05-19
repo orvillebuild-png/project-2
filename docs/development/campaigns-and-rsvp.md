@@ -40,6 +40,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Per-recipient delivery status updates after Resend accepts an email.
 - Per-recipient open and click tracking through token-scoped tracking routes.
 - Campaign engagement summary for delivered, opened, clicked, and pending recipients.
+- Campaign delivery health summary for provider-processed delivery rate, pending, bounced, complaints, suppressed, and last provider update.
+- Recipient table exposes per-recipient delivery state, last provider activity, engagement state, RSVP state, and Resend email ID.
 - Tokenized unsubscribe links in real campaign sends.
 - Suppressed contacts are skipped before Resend is called.
 - Resend webhook ingestion for delivered, opened, clicked, bounced, failed, complained, and suppressed events.
@@ -96,6 +98,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Test RSVP response loop without email sending.
 - Track pending/yes/maybe/no response status from the campaign page.
 - Track open and click engagement from the campaign page.
+- Review delivery health after sending, including provider bounce/complaint feedback.
+- Inspect a recipient's Resend email ID when diagnosing provider delivery events.
 - Let a recipient unsubscribe from future campaign email without logging in.
 - View RSVP summary counts for yes, maybe, no, and pending.
 - Adjust the visible email layout without editing raw HTML.
