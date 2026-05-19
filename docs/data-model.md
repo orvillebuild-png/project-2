@@ -19,6 +19,9 @@ One row per nonprofit organization (tenant).
 | `sender_name` | text | "From" name on all outgoing emails |
 | `sender_email` | text | Verified sender email in Resend |
 | `reply_to_email` | text | Reply-to address |
+| `timezone` | text | Workspace timezone for event and dashboard defaults |
+| `website_url` | text | Public website |
+| `address` | text | Organization mailing or office address |
 | `billing_provider` | text | `lemonsqueezy` at launch; keeps the billing layer provider-agnostic |
 | `billing_customer_id` | text | Lemon Squeezy customer ID |
 | `billing_subscription_id` | text | Lemon Squeezy subscription ID |
@@ -53,6 +56,35 @@ Join table — links users to organizations with a role.
 | `joined_at` | timestamptz | |
 
 Constraint: unique on `(org_id, user_id)`.
+
+---
+
+### `team_invitations`
+Pending and completed workspace invitations.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `org_id` | uuid FK -> `orgs.id` | Invitation owner |
+| `email` | text | Invited email address |
+| `role` | text | `admin` or `member` |
+| `status` | text | `pending`, `accepted`, or `revoked` |
+| `invited_by` | uuid FK -> `users.id` | Admin who created the invite |
+| `token` | text | Unique bearer token used by `/team/invite/[token]` |
+| `expires_at` | timestamptz | Defaults to 14 days after invite creation |
+| `accepted_at` | timestamptz | Set when accepted |
+| `created_at` | timestamptz | |
+
+Constraints and indexes:
+
+- unique on `(org_id, email)`
+- unique index on `token`
+- index on `(lower(email), status)`
+
+RLS:
+
+- Org members can see their org invitations.
+- The invited authenticated email can see and accept its own pending invitation.
 
 ---
 

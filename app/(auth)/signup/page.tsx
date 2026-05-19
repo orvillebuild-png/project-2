@@ -6,23 +6,28 @@ import { authMessage } from "@/lib/auth-messages";
 export default async function SignupPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; invite?: string; next?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, invite, next } = await searchParams;
   const message = authMessage(error);
+  const isInviteSignup = Boolean(invite);
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
       <section className="w-full max-w-2xl rounded-lg border border-line bg-white p-6 shadow-soft">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-moss">Start workspace</p>
         <h1 className="mt-3 text-2xl font-semibold text-ink">Create your organization</h1>
-        <p className="mt-2 text-sm leading-6 text-muted">Create a secure workspace for your nonprofit team.</p>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          {isInviteSignup ? "Create your user account, then accept the workspace invitation." : "Create a secure workspace for your nonprofit team."}
+        </p>
         {message ? (
           <p className="mt-4 rounded-md border border-[#f3c2b8] bg-[#fff0ed] px-3 py-2 text-sm text-coral">
             {decodeURIComponent(message)}
           </p>
         ) : null}
         <form action={signup} className="mt-6 grid gap-4 md:grid-cols-2">
+          <input name="invite_token" type="hidden" value={invite ?? ""} />
+          <input name="next" type="hidden" value={next ?? (invite ? `/team/invite/${invite}` : "/dashboard")} />
           <label className="space-y-2 text-sm font-medium text-ink">
             <span>Your name</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="name" required />
@@ -35,16 +40,20 @@ export default async function SignupPage({
             <span>Password</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" minLength={8} name="password" required type="password" />
           </label>
-          <label className="space-y-2 text-sm font-medium text-ink">
-            <span>Organization name</span>
-            <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="org_name" required />
-          </label>
-          <label className="space-y-2 text-sm font-medium text-ink">
-            <span>Organization slug</span>
-            <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="org_slug" placeholder="your-org" />
-          </label>
+          {!isInviteSignup ? (
+            <>
+              <label className="space-y-2 text-sm font-medium text-ink">
+                <span>Organization name</span>
+                <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="org_name" required />
+              </label>
+              <label className="space-y-2 text-sm font-medium text-ink">
+                <span>Organization slug</span>
+                <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="org_slug" placeholder="your-org" />
+              </label>
+            </>
+          ) : null}
           <div className="flex items-end">
-            <Button className="w-full" type="submit">Create account</Button>
+            <Button className="w-full" type="submit">{isInviteSignup ? "Create invited account" : "Create account"}</Button>
           </div>
         </form>
         <p className="mt-5 text-center text-sm text-muted">

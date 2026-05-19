@@ -6,9 +6,9 @@ import { authMessage } from "@/lib/auth-messages";
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; email?: string; next?: string }>;
 }) {
-  const { error, email } = await searchParams as { error?: string; email?: string };
+  const { error, email, next } = await searchParams;
   const message = authMessage(error);
 
   return (
@@ -29,6 +29,7 @@ export default async function LoginPage({
           </form>
         ) : null}
         <form action={login} className="mt-6 space-y-4">
+          <input name="next" type="hidden" value={next ?? "/dashboard"} />
           <label className="block space-y-2 text-sm font-medium text-ink">
             <span>Email</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="email" required type="email" />

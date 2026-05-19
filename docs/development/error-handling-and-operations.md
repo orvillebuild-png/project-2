@@ -101,6 +101,26 @@ Handling:
 - UI shows a setup error.
 - Local development currently uses `onboarding@resend.dev` for testing until a sender domain is verified.
 
+### Team invitation email not delivered
+
+Cause: `RESEND_API_KEY` or `RESEND_FROM_EMAIL` is missing, or Resend rejects the message.
+
+Handling:
+
+- The invitation row is still created.
+- Admins can open the invitation link directly from Settings and send it manually.
+- Invitees must authenticate with the same email address as the invitation.
+
+### Team invitation cannot be accepted
+
+Cause: Expired token, already accepted invitation, wrong signed-in email, or missing RLS access.
+
+Handling:
+
+- `/team/invite/[token]` shows a specific error.
+- The invitation SELECT policy allows admins or the invited authenticated email to see the row.
+- The UPDATE policy only lets the invited authenticated email accept a pending, unexpired invite.
+
 ### Campaign send failure
 
 Cause: Resend rejects a recipient, network/API failure, or the app cannot update the accepted recipient's `send_log` row.

@@ -24,6 +24,7 @@ export default async function SettingsPage({
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const [{ error, saved }, data] = await Promise.all([searchParams, getSettingsData()]);
+  const appBaseUrl = (process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")).replace(/\/$/, "");
 
   return (
     <>
@@ -97,7 +98,7 @@ export default async function SettingsPage({
 
         <div className="space-y-5">
           <Card>
-            <CardHeader description="Add teammates now if they already have an account, or store a pending invitation for later acceptance." title="Team access" />
+            <CardHeader description="Send invite links, assign roles, and let teammates accept with their own account." title="Team access" />
             <form action={inviteTeamMember} className="grid gap-3 border-b border-line/80 p-5 sm:grid-cols-[1fr_8rem_auto]">
               <input className="h-11 rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" name="email" placeholder="teammate@example.org" type="email" required />
               <select className="h-11 rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" name="role" defaultValue="member">
@@ -120,7 +121,14 @@ export default async function SettingsPage({
                 <div className="flex items-center justify-between rounded-2xl border border-dashed border-line bg-white/60 px-3 py-3" key={invite.id}>
                   <div>
                     <p className="text-sm font-semibold text-ink">{invite.email}</p>
-                    <p className="text-xs text-muted">Pending invitation</p>
+                    <p className="text-xs text-muted">
+                      {invite.status === "pending" ? `Pending until ${new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(invite.expires_at))}` : `Invitation ${invite.status}`}
+                    </p>
+                    {invite.status === "pending" ? (
+                      <a className="mt-1 inline-flex text-xs font-semibold text-moss hover:text-ink" href={`${appBaseUrl}/team/invite/${invite.token}`}>
+                        Open invite link
+                      </a>
+                    ) : null}
                   </div>
                   <Badge tone="amber">{invite.role}</Badge>
                 </div>

@@ -15,11 +15,13 @@ export async function signup(formData: FormData) {
   const name = formValue(formData, "name");
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
+  const inviteToken = formValue(formData, "invite_token");
   const orgName = formValue(formData, "org_name");
   const requestedSlug = formValue(formData, "org_slug");
   const orgSlug = slugify(requestedSlug || orgName);
+  const next = formValue(formData, "next") || (inviteToken ? `/team/invite/${inviteToken}` : "/dashboard");
 
-  if (!name || !email || !password || !orgName || !orgSlug) {
+  if (!name || !email || !password || (!inviteToken && (!orgName || !orgSlug))) {
     redirect("/signup?error=missing_fields");
   }
 
@@ -36,6 +38,15 @@ export async function signup(formData: FormData) {
 
   if (signUpError || !authData.user) {
     redirect(`/signup?error=${authErrorCode(signUpError?.message ?? "signup_failed")}`);
+  }
+
+  if (inviteToken) {
+    if (!authData.session) {
+      redirect(`/signup/check-email?email=${encodeURIComponent(email)}`);
+    }
+
+    revalidatePath("/", "layout");
+    redirect(next);
   }
 
   if (!authData.session) {
@@ -75,6 +86,7 @@ export async function signup(formData: FormData) {
 export async function login(formData: FormData) {
   const email = formValue(formData, "email");
   const password = formValue(formData, "password");
+  const next = formValue(formData, "next") || "/dashboard";
 
   if (!email || !password) {
     redirect("/login?error=missing_fields");
@@ -93,7 +105,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  redirect("/dashboard");
+  redirect(next.startsWith("/") ? next : "/dashboard");
 }
 
 export async function logout() {

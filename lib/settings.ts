@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
+import crypto from "node:crypto";
 import { redirect } from "next/navigation";
-import { getCurrentOrg, getSessionUser } from "@/lib/auth";
+import { getCurrentOrg, getSessionUser, requireUser } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
 import { slugify } from "@/lib/orgs";
 
@@ -51,10 +52,18 @@ export type TeamMember = {
 
 export type TeamInvitation = {
   id: string;
+  org_id: string;
   email: string;
   role: string;
   status: string;
+  token: string;
+  expires_at: string;
+  accepted_at: string | null;
   created_at: string;
+  orgs?: {
+    name: string;
+    slug: string;
+  } | null;
 };
 
 function formValue(formData: FormData, key: string) {
@@ -72,6 +81,10 @@ function cleanDomain(value: string) {
 
 function cleanEmail(value: string) {
   return value.trim().toLowerCase();
+}
+
+function appUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}` || "http://localhost:3000").replace(/\/$/, "");
 }
 
 function dnsRecords(value: unknown): SenderDnsRecord[] {
@@ -131,6 +144,46 @@ async function resendRequest(path: string, init: RequestInit = {}) {
   return json;
 }
 
+async function sendTeamInviteEmail({
+  email,
+  inviteUrl,
+  orgName,
+  role
+}: {
+  email: string;
+  inviteUrl: string;
+  orgName: string;
+  role: string;
+}) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !from) {
+    return;
+  }
+
+  await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from,
+      to: email,
+      subject: `You're invited to ${orgName}`,
+      html: `
+        <div style="font-family:Inter,Arial,sans-serif;color:#111;line-height:1.6">
+          <h1 style="font-size:24px;margin:0 0 12px">Join ${orgName}</h1>
+          <p>You have been invited as a ${role} in Project 2.</p>
+          <p><a href="${inviteUrl}" style="display:inline-block;background:#111;color:#fff;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Accept invitation</a></p>
+          <p style="color:#666;font-size:13px">This link expires in 14 days. If you were not expecting this invitation, you can ignore this email.</p>
+        </div>
+      `
+    })
+  });
+}
+
 export async function getSettingsData() {
   const { org, supabase } = await requireOrg();
   const [orgResult, domainsResult, membersResult, invitationsResult] = await Promise.all([
@@ -151,7 +204,7 @@ export async function getSettingsData() {
       .order("joined_at", { ascending: true }),
     supabase
       .from("team_invitations")
-      .select("id, email, role, status, created_at")
+      .select("id, org_id, email, role, status, token, expires_at, accepted_at, created_at")
       .eq("org_id", org.id)
       .order("created_at", { ascending: false })
   ]);
@@ -221,43 +274,113 @@ export async function inviteTeamMember(formData: FormData) {
   const user = await getSessionUser();
   const email = cleanEmail(formValue(formData, "email"));
   const role = formValue(formData, "role") === "admin" ? "admin" : "member";
+  const token = crypto.randomBytes(24).toString("hex");
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
   if (!email) {
     redirect("/settings?error=missing_invite_email");
   }
 
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
+  const { error: inviteError } = await supabase
+    .from("team_invitations")
+    .upsert({
+      org_id: org.id,
+      email,
+      role,
+      status: "pending",
+      token,
+      expires_at: expiresAt,
+      accepted_at: null,
+      invited_by: user?.id ?? null
+    }, { onConflict: "org_id,email" });
 
-  if (existingUser?.id) {
-    const { error: memberError } = await supabase
-      .from("org_users")
-      .upsert({ org_id: org.id, user_id: existingUser.id, role }, { onConflict: "org_id,user_id" });
+  if (inviteError) {
+    redirect(`/settings?error=${encodeURIComponent(inviteError.message)}`);
+  }
 
-    if (memberError) {
-      redirect(`/settings?error=${encodeURIComponent(memberError.message)}`);
-    }
-  } else {
-    const { error: inviteError } = await supabase
-      .from("team_invitations")
-      .upsert({
-        org_id: org.id,
-        email,
-        role,
-        status: "pending",
-        invited_by: user?.id ?? null
-      }, { onConflict: "org_id,email" });
-
-    if (inviteError) {
-      redirect(`/settings?error=${encodeURIComponent(inviteError.message)}`);
-    }
+  try {
+    await sendTeamInviteEmail({
+      email,
+      inviteUrl: `${appUrl()}/team/invite/${token}`,
+      orgName: org.name,
+      role
+    });
+  } catch {
+    // The invitation link is still available in Settings if email delivery fails.
   }
 
   revalidatePath("/settings");
   redirect("/settings?saved=team");
+}
+
+export async function getTeamInvitation(token: string) {
+  const supabase = await createClientForServer();
+  const { data, error } = await supabase
+    .from("team_invitations")
+    .select("id, org_id, email, role, status, token, expires_at, accepted_at, created_at, orgs(name, slug)")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    ...data,
+    orgs: Array.isArray(data.orgs) ? data.orgs[0] ?? null : data.orgs ?? null
+  } as TeamInvitation;
+}
+
+export async function acceptTeamInvitation(token: string) {
+  "use server";
+
+  const user = await requireUser();
+  const supabase = await createClientForServer();
+  const invitation = await getTeamInvitation(token);
+
+  if (!invitation) {
+    redirect(`/team/invite/${token}?error=not_found`);
+  }
+
+  if (invitation.status !== "pending") {
+    redirect(`/team/invite/${token}?error=already_used`);
+  }
+
+  if (new Date(invitation.expires_at).getTime() < Date.now()) {
+    redirect(`/team/invite/${token}?error=expired`);
+  }
+
+  if (cleanEmail(user.email ?? "") !== cleanEmail(invitation.email)) {
+    redirect(`/team/invite/${token}?error=email_mismatch`);
+  }
+
+  const { error: membershipError } = await supabase
+    .from("org_users")
+    .upsert({ org_id: invitation.org_id, user_id: user.id, role: invitation.role }, { onConflict: "org_id,user_id" });
+
+  if (membershipError) {
+    redirect(`/team/invite/${token}?error=${encodeURIComponent(membershipError.message)}`);
+  }
+
+  const { error: invitationError } = await supabase
+    .from("team_invitations")
+    .update({
+      status: "accepted",
+      accepted_at: new Date().toISOString()
+    })
+    .eq("id", invitation.id);
+
+  if (invitationError) {
+    redirect(`/team/invite/${token}?error=${encodeURIComponent(invitationError.message)}`);
+  }
+
+  revalidatePath("/", "layout");
+  revalidatePath("/settings");
+  redirect("/dashboard?joined=1");
 }
 
 export async function createSenderDomain(formData: FormData) {

@@ -11,10 +11,12 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Billing direction: Lemon Squeezy, not Stripe.
 - Email sending: Resend for test sends and guarded campaign sends.
 - Email checking: Disify-first provider adapter with optional Reacher support and syntax/MX fallback.
+- Team invitations: Settings creates tokenized invites and the accept page creates workspace memberships after email-matched login.
 
 ## Current Implemented Areas
 
 - Authentication and workspace creation.
+- Settings with organization profile, sender domain verification, and team invitation acceptance.
 - Contact management with tags, contact types, filtering, email verification, bulk tagging, soft delete, and history.
 - CSV contact import with mapping, validation, duplicate handling, and import source tracking.
 - Event creation, editing, publish state, and session management.
@@ -44,6 +46,7 @@ Most records are scoped to an organization/workspace:
 
 - `orgs`
 - `org_users`
+- `team_invitations`
 - `contacts`
 - `tags`
 - `contact_types`
