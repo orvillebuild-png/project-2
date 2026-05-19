@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
+import { RouteProgress } from "@/components/layout/RouteProgress";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -18,6 +19,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen lg:flex">
+      <RouteProgress />
       <Sidebar />
       <div className="min-w-0 flex-1">
         <TopBar orgName={org?.name} userEmail={user.email} />
