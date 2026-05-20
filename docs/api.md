@@ -540,13 +540,14 @@ Missing webhook secret returns 503. Invalid signature returns 400. Unknown event
 
 ---
 
-### `POST /api/webhooks/lemon-squeezy`
+### `POST /api/webhooks/lemonsqueezy`
 **Auth:** public + Lemon Squeezy signature verification
 
-Processes Lemon Squeezy billing events such as subscription created, subscription updated, subscription cancelled, order created, and payment failed.
+Processes Lemon Squeezy subscription billing events such as subscription created, updated, cancelled, paused, unpaused, expired, payment failed, and payment success.
 
-On active subscription events: stores the Lemon Squeezy customer, subscription, and subscription item IDs needed for usage reporting.
-On failed payment or cancelled subscription events: updates `plan_status`, records an audit event, and sends a warning email to the org admin.
+The route reads the raw request body and verifies `X-Signature` with the configured webhook secret. Accepted payloads are stored in `billing_webhook_events` for retry idempotency.
+
+On subscription events: stores the Lemon Squeezy customer, subscription, and known subscription item IDs needed for usage reporting. Failed payment, cancelled, expired, and paused events update `plan_status` and record an audit event.
 
 ---
 
@@ -559,36 +560,23 @@ The serve endpoint for all Inngest background functions. All jobs (email send, C
 
 ## Billing
 
-### `GET /api/billing/usage`
-**Auth:** admin
+### `/settings/billing`
+**Auth:** admin page
 
-**Response:**
-```json
-{
-  "period_start": "iso8601",
-  "period_end": "iso8601",
-  "emails_sent": 1840,
-  "validations_run": 412,
-  "estimated_total_usd": 4.25
-}
-```
+Shows current-period usage, estimated local charges, unreported usage rows, subscription status, provider IDs, and the live billing checklist.
 
 Aggregated from `usage_events` for the current billing period. Estimated total computed locally; actual invoice amount comes from Lemon Squeezy.
 
 ---
 
-### `POST /api/billing/portal`
+### Billing checkout server action
 **Auth:** admin
 
-**Request:** `{ "return_url": "string" }`
-
-**Response:** `{ "url": "string" }`
-
-Creates or returns a Lemon Squeezy-hosted billing management link. The client redirects to the returned URL. Org manages payment method, views invoices, and can cancel from the hosted billing flow.
+Creates a Lemon Squeezy checkout through `POST https://api.lemonsqueezy.com/v1/checkouts` and redirects to the hosted checkout URL. The checkout includes `org_id` as custom data for webhook mapping.
 
 ---
 
-### `GET /api/billing/invoices`
+### Lemon Squeezy customer portal
 **Auth:** admin
 
-Returns invoice/order history fetched from the Lemon Squeezy API. Cached for 60 seconds per org. Each record includes amount, status, billing period, and hosted receipt or invoice URL when available.
+When `LEMONSQUEEZY_STORE_DOMAIN` and a synced customer ID exist, `/settings/billing` links to the hosted Lemon Squeezy billing portal at `{store_domain}/billing`.

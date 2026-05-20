@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentOrg } from "@/lib/auth";
+import { reportUsage } from "@/lib/billing";
 import {
   defaultEmailBuilderDraft,
   isEmailBuilderDocument,
@@ -1146,6 +1147,52 @@ export async function sendCampaign(campaignId: string, formData: FormData) {
 
       if (logError) {
         throw new Error(logError.message);
+      }
+
+      const idempotencyKey = `email-${campaignId}-${row.id}`;
+      const { data: usageEvent, error: usageError } = await supabase
+        .from("usage_events")
+        .insert({
+          org_id: org.id,
+          event_type: "email_sent",
+          quantity: 1,
+          metadata: {
+            campaign_id: campaignId,
+            send_log_id: row.id,
+            contact_id: row.contact_id,
+            resend_email_id: resendEmailId
+          },
+          billing_idempotency_key: idempotencyKey
+        })
+        .select("id, org_id, event_type, quantity, billing_idempotency_key")
+        .maybeSingle();
+
+      if (usageError) {
+        throw new Error(usageError.message);
+      }
+
+      if (usageEvent) {
+        try {
+          const result = await reportUsage({
+            id: usageEvent.id as string,
+            orgId: usageEvent.org_id as string,
+            type: usageEvent.event_type as "email_sent",
+            quantity: usageEvent.quantity as number,
+            idempotencyKey: usageEvent.billing_idempotency_key as string
+          });
+
+          if (!result.skipped) {
+            await supabase
+              .from("usage_events")
+              .update({
+                billing_reported: true,
+                billing_reported_at: new Date().toISOString()
+              })
+              .eq("id", usageEvent.id);
+          }
+        } catch (billingError) {
+          console.error("Failed to report email usage to billing provider", billingError);
+        }
       }
     }
   } catch (sendError) {

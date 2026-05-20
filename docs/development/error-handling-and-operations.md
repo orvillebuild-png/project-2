@@ -198,6 +198,38 @@ Handling:
 - MX-valid addresses become `unknown` because mailbox-level deliverability was not confirmed.
 - The stored `email_validations.provider` value shows which checker produced the final result: `disify`, `reacher`, or `syntax_mx`.
 
+### Lemon Squeezy checkout unavailable
+
+Cause: `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, or `LEMONSQUEEZY_CHECKOUT_VARIANT_ID` is missing or invalid.
+
+Handling:
+
+- `/settings/billing` shows checkout readiness and disables the checkout button when config is incomplete.
+- The server action fails closed and redirects back with a setup error instead of exposing a provider exception.
+- Checkout passes `org_id` as Lemon Squeezy custom data so later subscription webhooks can map the subscription to the workspace.
+
+### Lemon Squeezy webhook not processing
+
+Cause: Missing `LEMONSQUEEZY_WEBHOOK_SECRET`, invalid `X-Signature`, unknown custom `org_id`, or a database write failure.
+
+Handling:
+
+- Production endpoint is `/api/webhooks/lemonsqueezy`.
+- The route reads the raw body and verifies `X-Signature` with HMAC-SHA256 before parsing.
+- Webhook payload hashes are stored in `billing_webhook_events`, so Lemon Squeezy retries are idempotent.
+- Subscription events update `orgs.plan_status`, customer ID, subscription ID, and known usage subscription item IDs.
+- Each processed subscription event writes an `audit_log` entry.
+
+### Billing usage not reported
+
+Cause: Usage exists locally but Lemon Squeezy API keys or subscription item IDs are missing.
+
+Handling:
+
+- Email sends and validation runs still write `usage_events`; this table remains the billing source of truth.
+- `billing_reported=false` rows are visible on `/settings/billing` as unreported usage.
+- Once Lemon Squeezy subscription item IDs are available, new usage is reported to `/v1/usage-records`.
+
 ### Card asset upload failure
 
 Cause: Invalid file type, file over 5MB, missing session, or Supabase Storage policy rejection.

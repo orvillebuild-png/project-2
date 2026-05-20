@@ -32,6 +32,8 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Resend webhook reconciliation for delivered, opened, clicked, bounced, complained, failed, and suppressed events.
 - Dashboard operational snapshot with real CRM counts and a compact event calendar.
 - Reusable email template editing with version history and restore.
+- Billing settings page with current-period usage, checkout readiness, provider state, and Lemon Squeezy customer portal handoff.
+- Lemon Squeezy checkout creation, signed webhook intake, subscription status sync, webhook idempotency, and usage-record reporting for email sends and validation runs when subscription item IDs exist.
 - Parked invitation card designer prototype for a later add-on feature.
 
 ## Current Design Direction
@@ -59,6 +61,7 @@ Most records are scoped to an organization/workspace:
 - `email_templates`
 - `email_template_versions`
 - `usage_events`
+- `billing_webhook_events`
 
 Join or child records inherit access through parent relationships:
 
@@ -80,7 +83,6 @@ Campaigns now send through a separate confirmed action after recipient logs are 
 
 ## Known External Dependencies Not Yet Connected
 
-- Lemon Squeezy billing.
+- Lemon Squeezy store credentials, checkout variant, and webhook secret must be configured in Vercel before live billing can collect payment.
 - Production email validation provider credentials.
 - Address autocomplete/geocoding provider.
-- Production deployment configuration.

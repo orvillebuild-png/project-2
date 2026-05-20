@@ -362,6 +362,20 @@ This table is the source of truth for billing. Lemon Squeezy is the launch colle
 
 ---
 
+### `billing_webhook_events`
+Idempotency ledger for signed Lemon Squeezy webhook payloads.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text PK | Lemon event ID when present; otherwise SHA-256 hash of the raw payload |
+| `event_name` | text | Lemon Squeezy event name such as `subscription_created` |
+| `payload` | jsonb | Full signed webhook payload for support/debug reconciliation |
+| `processed_at` | timestamptz | When the app accepted the event |
+
+RLS is enabled and no client policies are defined. Only the signed server route should insert rows with the Supabase service role.
+
+---
+
 ### `audit_log`
 Append-only log of all significant actions within an org.
 

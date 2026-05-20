@@ -3,6 +3,7 @@ import { resolveMx } from "node:dns/promises";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentOrg } from "@/lib/auth";
+import { reportUsage } from "@/lib/billing";
 import { createClientForServer } from "@/lib/supabase";
 
 export type EmailVerificationStatus = "valid" | "invalid" | "disposable" | "risky" | "unknown";
@@ -266,7 +267,8 @@ async function writeVerification(contactId: string, orgId: string, result: Verif
     throw new Error(contactError.message);
   }
 
-  await supabase.from("usage_events").insert({
+  const idempotencyKey = `validation-${contactId}-${randomUUID()}`;
+  const { data: usageEvent } = await supabase.from("usage_events").insert({
     org_id: orgId,
     event_type: "validation_run",
     quantity: 1,
@@ -275,8 +277,32 @@ async function writeVerification(contactId: string, orgId: string, result: Verif
       provider: result.provider,
       status: result.status
     },
-    billing_idempotency_key: `validation-${contactId}-${randomUUID()}`
-  });
+    billing_idempotency_key: idempotencyKey
+  }).select("id, org_id, event_type, quantity, billing_idempotency_key").maybeSingle();
+
+  if (usageEvent) {
+    try {
+      const report = await reportUsage({
+        id: usageEvent.id as string,
+        orgId: usageEvent.org_id as string,
+        type: usageEvent.event_type as "validation_run",
+        quantity: usageEvent.quantity as number,
+        idempotencyKey: usageEvent.billing_idempotency_key as string
+      });
+
+      if (!report.skipped) {
+        await supabase
+          .from("usage_events")
+          .update({
+            billing_reported: true,
+            billing_reported_at: new Date().toISOString()
+          })
+          .eq("id", usageEvent.id);
+      }
+    } catch (billingError) {
+      console.error("Failed to report validation usage to billing provider", billingError);
+    }
+  }
 }
 
 async function verifyContacts(contactIds: string[]) {
