@@ -91,6 +91,7 @@ export default async function DashboardPage() {
             {[
               ["Import contacts", "/contacts/import"],
               ["Create event", "/events/new"],
+              ["Template library", "/templates"],
               ["Start campaign", "/campaigns/new"],
               ["Review billing", "/settings/billing"]
             ].map(([label, href]) => (
