@@ -1,12 +1,20 @@
+import { BouncingDots, PulseBlob, SkeletonBlock } from "@/components/ui/Loader";
+
 export default function DashboardLoading() {
   return (
     <div className="space-y-5">
       <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/78 p-5 shadow-soft ring-1 ring-ink/5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-3">
-            <SkeletonLine className="h-3 w-24" />
-            <SkeletonLine className="h-8 w-64 max-w-full md:w-96" />
-            <SkeletonLine className="h-4 w-52 max-w-full md:w-80" />
+          <div className="flex items-start gap-4">
+            <PulseBlob className="mt-1 shrink-0" />
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <SkeletonLine className="h-3 w-24" />
+                <BouncingDots />
+              </div>
+              <SkeletonLine className="h-8 w-64 max-w-full md:w-96" />
+              <SkeletonLine className="h-4 w-52 max-w-full md:w-80" />
+            </div>
           </div>
           <SkeletonLine className="h-10 w-32 rounded-full" />
         </div>
@@ -21,8 +29,8 @@ export default function DashboardLoading() {
       <section className="overflow-hidden rounded-[1.5rem] border border-white/70 bg-white/82 shadow-soft ring-1 ring-ink/5">
         <div className="flex flex-col gap-3 border-b border-line/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-2">
+            <SkeletonLine className="h-3 w-24" />
             <SkeletonLine className="h-5 w-36" />
-            <SkeletonLine className="h-3 w-52" />
           </div>
           <SkeletonLine className="h-10 w-44 rounded-full" />
         </div>
@@ -59,9 +67,5 @@ function SkeletonRow() {
 }
 
 function SkeletonLine({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`animate-pulse rounded-full bg-gradient-to-r from-line/70 via-white/80 to-line/70 bg-[length:220%_100%] ${className}`}
-    />
-  );
+  return <SkeletonBlock className={className} />;
 }
