@@ -32,7 +32,7 @@ export default async function NewCampaignPage({
         eyebrow="Campaigns"
         title="New campaign"
       />
-      <Card className="max-w-5xl overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="border-b border-line/80 bg-night px-5 py-5 text-white">
           <p className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-amber">Campaign studio</p>
           <h2 className="mt-2 text-2xl font-semibold leading-tight">Start with the audience and message.</h2>

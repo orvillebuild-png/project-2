@@ -212,14 +212,14 @@ export function EmailBuilderJsEditor({
         </div>
       </div>
 
-      <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="bg-[#eeebe2] p-4 md:p-6">
-          <div className="mx-auto max-w-[760px] overflow-hidden rounded-[1.35rem] border border-line bg-white shadow-soft">
+      <div className="grid gap-0 xl:grid-cols-[minmax(42rem,1fr)_24rem]">
+        <div className="bg-[#eeebe2] p-4 md:p-6 xl:p-8">
+          <div className="mx-auto max-w-[880px] overflow-hidden rounded-[1.35rem] border border-line bg-white shadow-soft">
             <Reader document={document} rootBlockId="root" />
           </div>
         </div>
 
-        <aside className="border-t border-line/80 bg-white/74 p-4 xl:border-l xl:border-t-0">
+        <aside className="border-t border-line/80 bg-white/74 p-4 xl:border-l xl:border-t-0 xl:p-5">
           <div className="space-y-4">
             <EditorGroup icon={<Type className="h-4 w-4" />} title="Content">
               <label className="grid gap-1 text-[0.72rem] font-bold text-ink">
