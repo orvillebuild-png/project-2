@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { authMessage } from "@/lib/auth-messages";
 import { createContact, listContactTypes } from "@/lib/contacts";
 
@@ -111,7 +112,7 @@ export default async function NewContactPage({
             <input className="h-11 w-full rounded-md border border-line px-3 outline-none" disabled value="Manual Entry" />
           </label>
           <div className="flex items-end gap-2">
-            <Button type="submit">Save contact</Button>
+            <SubmitButton loadingLabel="Adding contact">Save contact</SubmitButton>
             <Button href="/contacts" variant="secondary">Cancel</Button>
           </div>
         </form>

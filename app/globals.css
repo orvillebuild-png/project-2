@@ -139,8 +139,8 @@ textarea {
 }
 
 .loader-blob {
-  width: 2.4rem;
-  height: 2.4rem;
+  width: var(--loader-blob-size, 2.4rem);
+  height: var(--loader-blob-size, 2.4rem);
   background:
     radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.82), transparent 0.58rem),
     linear-gradient(135deg, #ffca3a, #1f6b5d);

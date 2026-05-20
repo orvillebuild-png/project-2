@@ -7,6 +7,7 @@ import { CollapsibleRail } from "@/components/layout/CollapsibleRail";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { getCurrentOrg, requireUser } from "@/lib/auth";
 import { campaignRsvpSummary, getCampaign, getCampaignSendLogCount, listCampaignRecipients, prepareCampaignRecipients, sendCampaign, sendCampaignTestEmail, updateCampaignDraft, updateCampaignDraftAndPreview } from "@/lib/campaigns";
 import { isSenderDomainVerified } from "@/lib/settings";
@@ -377,9 +378,9 @@ export default async function CampaignDetailPage({
                     <p className="text-sm font-semibold text-ink">RSVP links</p>
                     <p className="mt-1 text-xs text-muted">{sendLogCount} prepared record{sendLogCount === 1 ? "" : "s"}</p>
                   </div>
-                  <Button type="submit" variant="secondary">
+                  <SubmitButton loadingLabel="Syncing" variant="secondary">
                     {sendLogCount > 0 ? "Sync" : "Generate"}
-                  </Button>
+                  </SubmitButton>
                 </div>
               </form>
 
@@ -392,7 +393,7 @@ export default async function CampaignDetailPage({
                   placeholder="you@example.com"
                   type="email"
                 />
-                <Button className="mt-3 w-full" type="submit" variant="secondary">Send test email</Button>
+                <SubmitButton className="mt-3 w-full" loadingLabel="Sending test" variant="secondary">Send test email</SubmitButton>
               </form>
 
               <form action={sendAction} className="rounded-2xl border border-line bg-night p-4 text-white">
@@ -439,9 +440,7 @@ export default async function CampaignDetailPage({
                   />
                   I understand this will send real email to every pending recipient.
                 </label>
-                <Button className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={sendBlocked} type="submit">
-                  Send campaign
-                </Button>
+                <SubmitButton className="mt-3 w-full bg-amber text-night hover:bg-butter" disabled={sendBlocked} loadingLabel="Sending campaign">Send campaign</SubmitButton>
               </form>
             </div>
           </Card>

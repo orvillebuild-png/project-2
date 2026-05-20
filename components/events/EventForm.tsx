@@ -4,6 +4,7 @@ import { CalendarDays, MapPin, RadioTower } from "lucide-react";
 import { useMemo, useState } from "react";
 import { EventDateTimeFields } from "@/components/events/EventDateTimeFields";
 import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { EventListItem, LocationOption } from "@/lib/events";
 
 const eventTypeOptions: Array<{ label: string; value: EventListItem["type"] }> = [
@@ -155,7 +156,7 @@ export function EventForm({
       </label>
 
       <div className="flex gap-2">
-        <Button type="submit">Save event</Button>
+        <SubmitButton loadingLabel="Saving event">Save event</SubmitButton>
         <Button href={cancelHref} variant="secondary">Cancel</Button>
       </div>
     </form>

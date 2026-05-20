@@ -10,8 +10,23 @@ export function BouncingDots({ className = "", label = "Loading" }: { className?
   );
 }
 
-export function PulseBlob({ className = "", label = "Loading" }: { className?: string; label?: string }) {
-  return <span aria-label={label} className={cn("loader-blob inline-block", className)} role="status" />;
+export function PulseBlob({
+  className = "",
+  label = "Loading",
+  size = "md"
+}: {
+  className?: string;
+  label?: string;
+  size?: "sm" | "md";
+}) {
+  return (
+    <span
+      aria-label={label}
+      className={cn("loader-blob inline-block", className)}
+      role="status"
+      style={{ "--loader-blob-size": size === "sm" ? "1rem" : "2.4rem" } as React.CSSProperties}
+    />
+  );
 }
 
 export function SkeletonBlock({ className = "" }: { className?: string }) {

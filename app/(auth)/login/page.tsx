@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { login, resendConfirmation } from "@/app/(auth)/actions";
 import { authMessage } from "@/lib/auth-messages";
 
@@ -38,7 +39,7 @@ export default async function LoginPage({
             <span>Password</span>
             <input className="h-11 w-full rounded-md border border-line bg-field px-3 outline-none focus:border-moss" name="password" required type="password" />
           </label>
-          <Button className="w-full" type="submit">Log in</Button>
+          <SubmitButton className="w-full" loadingLabel="Logging in" mode="auth">Log in</SubmitButton>
         </form>
         <p className="mt-5 text-center text-sm text-muted">
           New organization? <Link className="font-semibold text-moss" href="/signup">Create account</Link>
