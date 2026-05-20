@@ -42,8 +42,14 @@ type DateParts = {
   period: "AM" | "PM";
 };
 
-function defaultDateParts(offsetHours: number): DateParts {
+function defaultDateParts(offsetHours: number, dateSeed?: string | null): DateParts {
   const date = new Date();
+  const seedMatch = dateSeed?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (seedMatch) {
+    date.setFullYear(Number(seedMatch[1]), Number(seedMatch[2]) - 1, Number(seedMatch[3]));
+  }
+
   date.setHours(date.getHours() + offsetHours, 0, 0, 0);
   const hour = date.getHours();
 
@@ -57,9 +63,9 @@ function defaultDateParts(offsetHours: number): DateParts {
   };
 }
 
-function datePartsFromIso(value: string | null | undefined, offsetHours: number) {
+function datePartsFromIso(value: string | null | undefined, offsetHours: number, dateSeed?: string | null) {
   if (!value) {
-    return defaultDateParts(offsetHours);
+    return defaultDateParts(offsetHours, dateSeed);
   }
 
   const date = new Date(value);
@@ -144,13 +150,15 @@ function DateTimeField({
 
 export function EventDateTimeFields({
   defaultEndsAt,
-  defaultStartsAt
+  defaultStartsAt,
+  dateSeed
 }: {
   defaultEndsAt?: string | null;
   defaultStartsAt?: string | null;
+  dateSeed?: string | null;
 }) {
-  const [startsAt, setStartsAt] = useState(datePartsFromIso(defaultStartsAt, 24));
-  const [endsAt, setEndsAt] = useState(datePartsFromIso(defaultEndsAt, 27));
+  const [startsAt, setStartsAt] = useState(datePartsFromIso(defaultStartsAt, 24, dateSeed));
+  const [endsAt, setEndsAt] = useState(datePartsFromIso(defaultEndsAt, 27, dateSeed));
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

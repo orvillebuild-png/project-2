@@ -11,9 +11,9 @@ const errorMessages: Record<string, string> = {
 export default async function NewEventPage({
   searchParams
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ date?: string; error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { date, error } = await searchParams;
   const locations = await listLocations();
 
   return (
@@ -25,7 +25,7 @@ export default async function NewEventPage({
             {errorMessages[error] ?? decodeURIComponent(error)}
           </p>
         ) : null}
-        <EventForm action={createEvent} locations={locations} />
+        <EventForm action={createEvent} dateSeed={date} locations={locations} />
       </Card>
     </>
   );

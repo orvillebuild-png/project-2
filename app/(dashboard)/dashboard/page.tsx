@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Clock3, Mail, MailCheck, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarDays, Clock3, Mail, MailCheck, Plus, UsersRound } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -30,14 +30,9 @@ export default async function DashboardPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-ink/62">Today</p>
-                <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">Operational snapshot</h2>
+                <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">Next action</h2>
               </div>
               <Button className="bg-night text-white" href="/contacts">Open CRM</Button>
-            </div>
-            <div className="mt-5 grid grid-cols-3 gap-2">
-              <HeroStat label="Contacts" value={stats.contacts} />
-              <HeroStat label="Valid" value={stats.validEmails} />
-              <HeroStat label="Events" value={stats.upcomingEvents} />
             </div>
             <div className="mt-4 rounded-2xl border border-ink/10 bg-white/58 p-3">
               <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">Next event</p>
@@ -46,10 +41,24 @@ export default async function DashboardPage() {
                   <p className="mt-2 text-sm font-semibold text-ink">{stats.upcoming[0].title}</p>
                   <p className="mt-1 text-xs text-ink/62">{formatEventDate(stats.upcoming[0].starts_at)}</p>
                   <p className="mt-1 truncate text-xs text-ink/62">{stats.upcoming[0].locations?.name ?? "Location not set"}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button className="h-8 px-3" href={`/events/${stats.upcoming[0].id}/edit`} variant="secondary">Edit event</Button>
+                    <Button className="h-8 px-3" href={`/events/${stats.upcoming[0].id}/invitees`} variant="secondary">Invitees</Button>
+                  </div>
                 </>
               ) : (
-                <p className="mt-2 text-sm leading-5 text-ink/62">No upcoming events yet.</p>
+                <>
+                  <p className="mt-2 text-sm leading-5 text-ink/62">No upcoming events yet. Create one from today and start building invitees.</p>
+                  <Button className="mt-3 h-8 px-3" href={`/events/new?date=${dateParam(new Date())}`}>
+                    <Plus className="h-4 w-4" />
+                    Add event
+                  </Button>
+                </>
               )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button className="h-9 justify-between px-3" href="/campaigns/new" variant="secondary">Start campaign <ArrowRight className="h-4 w-4" /></Button>
+              <Button className="h-9 justify-between px-3" href="/templates" variant="secondary">Templates <ArrowRight className="h-4 w-4" /></Button>
             </div>
           </div>
         </div>
@@ -107,15 +116,6 @@ export default async function DashboardPage() {
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-2xl border border-ink/10 bg-white/52 px-3 py-3">
-      <p className="text-xl font-semibold leading-none text-ink">{value.toLocaleString()}</p>
-      <p className="mt-1 text-[0.64rem] font-black uppercase tracking-[0.12em] text-ink/52">{label}</p>
-    </div>
-  );
-}
-
 function CalendarPanel({ events }: { events: DashboardEvent[] }) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -162,18 +162,26 @@ function CalendarPanel({ events }: { events: DashboardEvent[] }) {
           {cells.map((day, index) => {
             const dayEvents = day ? eventsByDay.get(day) ?? [] : [];
             const isToday = day === now.getDate();
+            const date = day ? new Date(now.getFullYear(), now.getMonth(), day) : null;
+            const href = day
+              ? dayEvents[0]
+                ? `/events/${dayEvents[0].id}/edit`
+                : `/events/new?date=${dateParam(date!)}`
+              : undefined;
 
             return (
-              <div
-                className={`min-h-16 rounded-xl border px-2 py-1 text-sm ${
+              <a
+                aria-label={day ? dayEvents[0] ? `Edit ${dayEvents[0].title}` : `Add event on ${dateParam(date!)}` : undefined}
+                className={`group min-h-16 rounded-xl border px-2 py-1 text-sm transition ${
                   day
                     ? isToday
-                      ? "border-amber bg-amber/30 text-ink"
+                      ? "border-amber bg-amber/30 text-ink hover:bg-amber/40"
                       : dayEvents.length > 0
-                        ? "border-moss/30 bg-white text-ink"
-                        : "border-line/70 bg-white/50 text-muted"
-                    : "border-transparent"
+                        ? "border-moss/30 bg-white text-ink hover:border-moss hover:shadow-soft"
+                        : "border-line/70 bg-white/50 text-muted hover:border-amber hover:bg-white"
+                    : "pointer-events-none border-transparent"
                 }`}
+                href={href ?? "#"}
                 key={`${day ?? "blank"}-${index}`}
               >
                 {day ? (
@@ -181,10 +189,15 @@ function CalendarPanel({ events }: { events: DashboardEvent[] }) {
                     <span className="font-semibold">{day}</span>
                     {dayEvents.length > 0 ? (
                       <span className="mt-2 block h-1.5 w-1.5 rounded-full bg-moss" />
-                    ) : null}
+                    ) : (
+                      <span className="mt-2 hidden items-center gap-1 text-[0.64rem] font-semibold text-ink/52 group-hover:flex">
+                        <Plus className="h-3 w-3" />
+                        Add
+                      </span>
+                    )}
                   </>
                 ) : null}
-              </div>
+              </a>
             );
           })}
         </div>
@@ -193,7 +206,7 @@ function CalendarPanel({ events }: { events: DashboardEvent[] }) {
       <div className="space-y-2">
         <p className="text-[0.72rem] font-black uppercase tracking-[0.18em] text-moss">Upcoming</p>
         {events.length > 0 ? events.map((event) => (
-          <a className="block rounded-2xl border border-line/80 bg-white/74 p-3 transition hover:-translate-y-0.5 hover:border-moss/40 hover:shadow-soft" href={`/events/${event.id}`} key={event.id}>
+          <a className="block rounded-2xl border border-line/80 bg-white/74 p-3 transition hover:-translate-y-0.5 hover:border-moss/40 hover:shadow-soft" href={`/events/${event.id}/edit`} key={event.id}>
             <div className="flex items-start justify-between gap-2">
               <p className="text-sm font-semibold text-ink">{event.title}</p>
               <Badge tone={event.status === "published" ? "green" : "amber"}>{event.status}</Badge>
@@ -209,6 +222,14 @@ function CalendarPanel({ events }: { events: DashboardEvent[] }) {
       </div>
     </div>
   );
+}
+
+function dateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 function formatEventDate(value: string | null) {

@@ -17,11 +17,13 @@ const eventTypeOptions: Array<{ label: string; value: EventListItem["type"] }> =
 export function EventForm({
   action,
   cancelHref = "/events",
+  dateSeed,
   event,
   locations
 }: {
   action: (formData: FormData) => void | Promise<void>;
   cancelHref?: string;
+  dateSeed?: string | null;
   event?: EventListItem;
   locations: LocationOption[];
 }) {
@@ -102,7 +104,7 @@ export function EventForm({
         ) : null}
       </fieldset>
 
-      <EventDateTimeFields defaultEndsAt={event?.ends_at} defaultStartsAt={event?.starts_at} />
+      <EventDateTimeFields dateSeed={dateSeed} defaultEndsAt={event?.ends_at} defaultStartsAt={event?.starts_at} />
 
       <section className="rounded-2xl border border-line/90 bg-field/70 p-4">
         <div className="mb-4 flex items-center gap-3">
