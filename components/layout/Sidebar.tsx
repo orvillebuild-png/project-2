@@ -7,6 +7,7 @@ import {
   FileText,
   Home,
   Mail,
+  Tags,
   Settings,
   UsersRound
 } from "lucide-react";
@@ -15,15 +16,34 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const nav = [
+const primaryNav = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/contacts", label: "Contacts", icon: UsersRound },
-  { href: "/contacts/organizations", label: "Organizations", icon: Building2 },
-  { href: "/events", label: "Events", icon: CalendarDays },
-  { href: "/campaigns", label: "Campaigns", icon: Mail },
-  { href: "/templates", label: "Templates", icon: FileText },
+  { href: "/events", label: "Events", icon: CalendarDays }
+];
+
+const utilityNav = [
   { href: "/settings/billing", label: "Billing", icon: CreditCard },
   { href: "/settings", label: "Settings", icon: Settings }
+];
+
+const groupedNav = [
+  {
+    href: "/contacts",
+    label: "Contacts",
+    icon: UsersRound,
+    children: [
+      { href: "/contacts/organizations", label: "Organizations", icon: Building2 },
+      { href: "/contacts/tags", label: "Tags", icon: Tags }
+    ]
+  },
+  {
+    href: "/campaigns",
+    label: "Campaigns",
+    icon: Mail,
+    children: [
+      { href: "/templates", label: "Email templates", icon: FileText }
+    ]
+  }
 ];
 
 export function Sidebar({
@@ -55,7 +75,67 @@ export function Sidebar({
         </Link>
 
         <nav className="mt-5 space-y-1.5">
-          {nav.map((item) => {
+          {primaryNav.map((item) => {
+            const Icon = item.icon;
+            const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
+
+            return (
+              <Link
+                className={cn(
+                  "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[0.84rem] font-semibold text-white/62 transition",
+                  active ? "bg-amber text-night shadow-sm" : "hover:bg-white/10 hover:text-white"
+                )}
+                href={item.href}
+                key={item.href}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+          {groupedNav.map((group) => {
+            const Icon = group.icon;
+            const active = pathname === group.href || pathname.startsWith(`${group.href}/`) || group.children.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`));
+            const expanded = active;
+
+            return (
+              <div key={group.href}>
+                <Link
+                  className={cn(
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[0.84rem] font-semibold text-white/62 transition",
+                    active ? "bg-amber text-night shadow-sm" : "hover:bg-white/10 hover:text-white"
+                  )}
+                  href={group.href}
+                >
+                  <Icon className="h-4 w-4" />
+                  {group.label}
+                </Link>
+                {expanded ? (
+                  <div className="ml-5 mt-1 space-y-1 border-l border-white/10 pl-3">
+                    {group.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+
+                      return (
+                        <Link
+                          className={cn(
+                            "flex items-center gap-2 rounded-xl px-2.5 py-2 text-[0.78rem] font-semibold transition",
+                            childActive ? "bg-white/12 text-amber" : "text-white/48 hover:bg-white/8 hover:text-white"
+                          )}
+                          href={child.href}
+                          key={child.href}
+                        >
+                          <ChildIcon className="h-3.5 w-3.5" />
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          {utilityNav.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
 
