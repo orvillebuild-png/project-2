@@ -1,5 +1,6 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
 import { Eye, ImagePlus, Paperclip, Palette, Type } from "lucide-react";
 import { Reader } from "@usewaypoint/email-builder";
 import { useMemo, useRef, useState } from "react";

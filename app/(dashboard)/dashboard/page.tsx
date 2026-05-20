@@ -16,7 +16,7 @@ export default async function DashboardPage() {
   return (
     <>
       <section className="mb-5 overflow-hidden rounded-[2rem] border border-white/70 bg-amber shadow-lift ring-1 ring-ink/5">
-        <div className="grid gap-5 p-5 md:grid-cols-[1fr_auto] md:p-7">
+        <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_26rem] md:p-7">
           <div>
             <p className="text-[0.72rem] font-bold uppercase tracking-[0.18em] text-ink/70">Project 2 workspace</p>
             <h1 className="mt-3 max-w-2xl text-[2.35rem] font-semibold leading-[1.02] text-ink md:text-[3.2rem]">
@@ -26,8 +26,31 @@ export default async function DashboardPage() {
               A focused nonprofit command center with each workflow visible, testable, and ready to become production-grade.
             </p>
           </div>
-          <div className="flex items-end md:min-w-56 md:justify-end">
-            <Button className="bg-night text-white" href="/contacts">Open CRM</Button>
+          <div className="rounded-[1.5rem] border border-ink/10 bg-white/38 p-4 shadow-soft backdrop-blur">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-ink/62">Today</p>
+                <h2 className="mt-2 text-xl font-semibold leading-tight text-ink">Operational snapshot</h2>
+              </div>
+              <Button className="bg-night text-white" href="/contacts">Open CRM</Button>
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2">
+              <HeroStat label="Contacts" value={stats.contacts} />
+              <HeroStat label="Valid" value={stats.validEmails} />
+              <HeroStat label="Events" value={stats.upcomingEvents} />
+            </div>
+            <div className="mt-4 rounded-2xl border border-ink/10 bg-white/58 p-3">
+              <p className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-moss">Next event</p>
+              {stats.upcoming[0] ? (
+                <>
+                  <p className="mt-2 text-sm font-semibold text-ink">{stats.upcoming[0].title}</p>
+                  <p className="mt-1 text-xs text-ink/62">{formatEventDate(stats.upcoming[0].starts_at)}</p>
+                  <p className="mt-1 truncate text-xs text-ink/62">{stats.upcoming[0].locations?.name ?? "Location not set"}</p>
+                </>
+              ) : (
+                <p className="mt-2 text-sm leading-5 text-ink/62">No upcoming events yet.</p>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -80,6 +103,15 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+function HeroStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-ink/10 bg-white/52 px-3 py-3">
+      <p className="text-xl font-semibold leading-none text-ink">{value.toLocaleString()}</p>
+      <p className="mt-1 text-[0.64rem] font-black uppercase tracking-[0.12em] text-ink/52">{label}</p>
+    </div>
   );
 }
 

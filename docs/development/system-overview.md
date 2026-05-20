@@ -16,7 +16,7 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 ## Current Implemented Areas
 
 - Authentication and workspace creation.
-- Settings with organization profile, sender domain verification, and team invitation acceptance.
+- Settings with organization profile, workspace logo upload, sender domain verification, and team invitation acceptance.
 - Contact management with tags, contact types, filtering, email verification, suppression management, bulk tagging, soft delete, and history.
 - CSV contact import with mapping, validation, duplicate handling, and import source tracking.
 - Event creation, editing, publish state, and session management.
@@ -30,6 +30,8 @@ Project 2 is a nonprofit relationship, event, invitation, RSVP, and billing plat
 - Guarded Resend test email action.
 - Guarded Resend campaign send action.
 - Resend webhook reconciliation for delivered, opened, clicked, bounced, complained, failed, and suppressed events.
+- Dashboard operational snapshot with real CRM counts and a compact event calendar.
+- Reusable email template editing with version history and restore.
 - Parked invitation card designer prototype for a later add-on feature.
 
 ## Current Design Direction
@@ -55,6 +57,7 @@ Most records are scoped to an organization/workspace:
 - `locations`
 - `send_campaigns`
 - `email_templates`
+- `email_template_versions`
 - `usage_events`
 
 Join or child records inherit access through parent relationships:

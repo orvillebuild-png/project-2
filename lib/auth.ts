@@ -31,13 +31,13 @@ export const getCurrentOrg = cache(async function getCurrentOrg() {
 
   const { data } = await supabase
     .from("org_users")
-    .select("role, orgs(id, name, slug, plan_status)")
+    .select("role, orgs(id, name, slug, logo_url, plan_status)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
 
   return data as {
     role: string;
-    orgs: { id: string; name: string; slug: string; plan_status: string } | null;
+    orgs: { id: string; name: string; slug: string; logo_url: string | null; plan_status: string } | null;
   } | null;
 });

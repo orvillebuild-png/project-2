@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen lg:flex">
       <RouteProgress />
-      <Sidebar />
+      <Sidebar org={org} />
       <div className="min-w-0 flex-1">
         <TopBar orgName={org?.name} userEmail={user.email} />
         <main className="px-4 pb-10 pt-4 md:px-6">{children}</main>

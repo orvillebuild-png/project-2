@@ -71,6 +71,9 @@ export default async function TemplatesPage({
                       <Button className="h-9 px-3" href={`/campaigns/new?template=${template.id}`}>
                         Use template
                       </Button>
+                      <Button className="h-9 px-3" href={`/templates/${template.id}/edit`} variant="secondary">
+                        Edit
+                      </Button>
                       <form action={deleteAction}>
                         <Button className="h-9 px-3 text-coral" type="submit" variant="ghost">Delete</Button>
                       </form>

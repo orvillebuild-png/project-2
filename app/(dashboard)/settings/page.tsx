@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { LogoUploadField } from "@/components/settings/LogoUploadField";
 import { createSenderDomain, getSettingsData, inviteTeamMember, removeSenderDomain, updateOrganizationSettings, verifySenderDomain } from "@/lib/settings";
 
 const timezones = [
@@ -54,10 +55,7 @@ export default async function SettingsPage({
               Public slug
               <input className="h-11 rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={data.org.slug} name="slug" required />
             </label>
-            <label className="grid gap-2 text-sm font-semibold text-ink">
-              Logo URL
-              <input className="h-11 rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={data.org.logo_url ?? ""} name="logo_url" placeholder="https://..." type="url" />
-            </label>
+            <LogoUploadField initialUrl={data.org.logo_url ?? ""} orgId={data.org.id} orgName={data.org.name} />
             <label className="grid gap-2 text-sm font-semibold text-ink">
               Brand color
               <input className="h-11 rounded-xl border border-line bg-field px-3 outline-none focus:border-moss" defaultValue={data.org.primary_color ?? "#ffca3a"} name="primary_color" type="color" />

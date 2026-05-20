@@ -10,6 +10,7 @@ import {
   UsersRound
 } from "lucide-react";
 import Link from "next/link";
+/* eslint-disable @next/next/no-img-element */
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -23,18 +24,30 @@ const nav = [
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  org
+}: {
+  org?: { logo_url: string | null; name: string } | null;
+}) {
   const pathname = usePathname();
+  const initials = (org?.name ?? "Project 2")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "P2";
 
   return (
     <aside className="hidden min-h-screen w-[17rem] shrink-0 p-4 lg:block">
       <div className="sticky top-4 flex h-[calc(100vh-2rem)] flex-col rounded-[1.65rem] bg-night p-3 text-white shadow-lift">
         <Link href="/dashboard" className="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/8 px-3 py-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber text-sm font-black text-night">
-            P2
+          <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-amber text-sm font-black text-night">
+            {org?.logo_url ? (
+              <img alt={`${org.name} logo`} className="h-full w-full object-cover" src={org.logo_url} />
+            ) : initials}
           </span>
           <span>
-            <span className="block text-sm font-semibold">Project 2</span>
+            <span className="block max-w-[9.5rem] truncate text-sm font-semibold">{org?.name ?? "Project 2"}</span>
             <span className="block text-[0.72rem] text-white/55">Nonprofit OS</span>
           </span>
         </Link>

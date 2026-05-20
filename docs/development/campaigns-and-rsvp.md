@@ -14,6 +14,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Email body.
 - Self-hosted EmailBuilderJS composer for campaign and reusable template creation.
 - Reusable template library for saving and reusing campaign layouts.
+- Reusable template editing with archived version history and restore.
 - New campaign flow can start from a reusable template while creating an editable campaign-specific copy.
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
 - Campaign preview is opened intentionally from the message editor instead of running as a permanent side panel.
@@ -99,6 +100,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Draft an invitation for a donation drive.
 - Create a reusable invitation template for recurring event formats.
 - Start a new campaign from a saved template.
+- Edit a saved template while preserving the previous version for rollback.
+- Restore an earlier reusable template version if an edit goes in the wrong direction.
 - Preview event merge fields before sending.
 - Generate a recipient-specific RSVP link.
 - Test RSVP response loop without email sending.
@@ -125,6 +128,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Campaign creation requires event, campaign name, subject, and message.
 - Email design data is stored as JSON and falls back to safe defaults if missing.
 - Library templates are marked separately from campaign-specific templates so normal campaign drafts do not clutter the reusable template list.
+- Template edits snapshot the previous template into `email_template_versions` before overwriting the current library template.
+- Restoring a version snapshots the current template first, then replaces it with the archived version.
 - Recipient log generation requires event invitees.
 - Recipient log generation only inserts missing records, so repeat sync is safe.
 - RSVP token lookup returns 404 if token is invalid.
@@ -180,6 +185,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - `app/(dashboard)/campaigns/[id]/page.tsx`
 - `app/(dashboard)/templates/page.tsx`
 - `app/(dashboard)/templates/new/page.tsx`
+- `app/(dashboard)/templates/[id]/edit/page.tsx`
 - `app/(dashboard)/campaigns/[id]/email-preview/route.ts`
 - `app/(dashboard)/campaigns/[id]/preview/page.tsx`
 - `app/api/campaigns/open/[token]/route.ts`
