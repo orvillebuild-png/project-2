@@ -2,6 +2,12 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentOrg } from "@/lib/auth";
+import {
+  defaultEmailBuilderDraft,
+  isEmailBuilderDocument,
+  type EmailBuilderDocument,
+  type EmailBuilderFont
+} from "@/lib/email-builder-document";
 import { createClientForServer } from "@/lib/supabase";
 import { isSenderDomainVerified } from "@/lib/settings";
 
@@ -30,8 +36,12 @@ export type CampaignListItem = {
 };
 
 export type EmailDesignData = {
-  editor_mode: "visual" | "legacy";
+  editor_mode: "visual" | "legacy" | "emailbuilder";
   unlayer_design: Record<string, unknown> | null;
+  email_builder_document: EmailBuilderDocument | null;
+  email_builder_body: string;
+  email_builder_canvas_color: string;
+  email_builder_font: EmailBuilderFont;
   headline: string;
   intro: string;
   button_label: string;
@@ -103,6 +113,10 @@ function defaultDesignData(eventTitle = "{{event_title}}"): EmailDesignData {
   return {
     editor_mode: "visual",
     unlayer_design: null,
+    email_builder_document: null,
+    email_builder_body: defaultEmailBuilderDraft().bodyText,
+    email_builder_canvas_color: "#ffffff",
+    email_builder_font: "MODERN_SANS",
     headline: `You are invited to ${eventTitle}`,
     intro: "We would be glad to have you with us.",
     button_label: "RSVP now",
@@ -178,11 +192,20 @@ function jsonRecordValue(value: string): Record<string, unknown> | null {
 
 export function emailDesignDataFromForm(formData: FormData): EmailDesignData {
   const defaults = defaultDesignData();
-  const editorMode = formValue(formData, "editor_mode") === "visual" ? "visual" : "legacy";
+  const rawEditorMode = formValue(formData, "editor_mode");
+  const editorMode = rawEditorMode === "emailbuilder" || rawEditorMode === "visual" ? rawEditorMode : "legacy";
+  const emailBuilderDocument = jsonRecordValue(formValue(formData, "email_builder_document"));
+  const emailBuilderFont = formValue(formData, "email_builder_font") as EmailBuilderFont;
 
   return {
     editor_mode: editorMode,
     unlayer_design: jsonRecordValue(formValue(formData, "unlayer_design")),
+    email_builder_document: isEmailBuilderDocument(emailBuilderDocument) ? emailBuilderDocument : defaults.email_builder_document,
+    email_builder_body: formValue(formData, "email_builder_body") || defaults.email_builder_body,
+    email_builder_canvas_color: hexValue(formValue(formData, "email_builder_canvas_color"), defaults.email_builder_canvas_color),
+    email_builder_font: ["MODERN_SANS", "BOOK_SANS", "ORGANIC_SANS", "GEOMETRIC_SANS", "HEAVY_SANS", "ROUNDED_SANS", "MODERN_SERIF", "BOOK_SERIF", "MONOSPACE"].includes(emailBuilderFont)
+      ? emailBuilderFont
+      : defaults.email_builder_font,
     headline: formValue(formData, "headline") || defaults.headline,
     intro: formValue(formData, "intro") || defaults.intro,
     button_label: formValue(formData, "button_label") || defaults.button_label,
@@ -211,10 +234,16 @@ export function normalizeEmailDesignData(value: unknown): EmailDesignData {
   const data = typeof value === "object" && value !== null ? value as Partial<EmailDesignData> : {};
 
   return {
-    editor_mode: data.editor_mode === "visual" || data.editor_mode === "legacy" ? data.editor_mode : defaults.editor_mode,
+    editor_mode: data.editor_mode === "visual" || data.editor_mode === "legacy" || data.editor_mode === "emailbuilder" ? data.editor_mode : defaults.editor_mode,
     unlayer_design: typeof data.unlayer_design === "object" && data.unlayer_design !== null && !Array.isArray(data.unlayer_design)
       ? data.unlayer_design as Record<string, unknown>
       : defaults.unlayer_design,
+    email_builder_document: isEmailBuilderDocument(data.email_builder_document) ? data.email_builder_document : defaults.email_builder_document,
+    email_builder_body: typeof data.email_builder_body === "string" && data.email_builder_body.trim() ? data.email_builder_body : defaults.email_builder_body,
+    email_builder_canvas_color: typeof data.email_builder_canvas_color === "string" ? hexValue(data.email_builder_canvas_color, defaults.email_builder_canvas_color) : defaults.email_builder_canvas_color,
+    email_builder_font: typeof data.email_builder_font === "string" && ["MODERN_SANS", "BOOK_SANS", "ORGANIC_SANS", "GEOMETRIC_SANS", "HEAVY_SANS", "ROUNDED_SANS", "MODERN_SERIF", "BOOK_SERIF", "MONOSPACE"].includes(data.email_builder_font)
+      ? data.email_builder_font as EmailBuilderFont
+      : defaults.email_builder_font,
     headline: typeof data.headline === "string" && data.headline.trim() ? data.headline : defaults.headline,
     intro: typeof data.intro === "string" ? data.intro : defaults.intro,
     button_label: typeof data.button_label === "string" && data.button_label.trim() ? data.button_label : defaults.button_label,
@@ -542,6 +571,56 @@ function paragraphHtml(value: string) {
     .join("");
 }
 
+export function renderEmailBuilderDesignHtml(design: EmailDesignData) {
+  if (design.editor_mode !== "emailbuilder") {
+    return null;
+  }
+
+  const imageUrl = safeImageUrl(design.image_url);
+  const attachmentUrl = safeImageUrl(design.attachment_url);
+  const image = imageUrl
+    ? `
+      <div style="padding:4px 30px 20px;text-align:center;background:${design.email_builder_canvas_color};">
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(design.image_alt)}" width="${design.image_width}" style="display:inline-block;width:100%;max-width:${design.image_width}px;height:auto;border:0;outline:none;text-decoration:none;vertical-align:middle;" />
+      </div>
+    `
+    : "";
+  const attachment = attachmentUrl
+    ? `
+      <div style="margin:4px 30px 26px;padding:14px 16px;border:1px solid #dfdccf;border-radius:12px;background:#fffdf4;">
+        <p style="margin:0 0 6px;font-weight:700;color:${design.text_color};">Attachment</p>
+        <a href="${escapeHtml(attachmentUrl)}" style="color:#1f6b5d;text-decoration:underline;font-weight:700;">${escapeHtml(design.attachment_name || "Open attached file")}</a>
+      </div>
+    `
+    : "";
+
+  return `<!DOCTYPE html><html><body>
+    <div style="margin:0;padding:36px;background:${design.email_bg};font-family:${design.font_family};">
+      <div style="max-width:640px;margin:0 auto;border:1px solid #dfdccf;border-radius:18px;overflow:hidden;background:${design.email_builder_canvas_color};color:${design.text_color};">
+        <div style="padding:34px 30px 32px;background:${design.header_bg};">
+          <p style="margin:0 0 14px;font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:${design.accent_color};">Invitation</p>
+          <h1 style="margin:0;color:${design.headline_color};font-size:32px;line-height:1.18;font-weight:700;">${escapeHtml(design.headline)}</h1>
+        </div>
+        <div style="padding:28px 30px 16px;background:${design.email_builder_canvas_color};color:${design.text_color};font-size:15px;line-height:1.6;">
+          ${paragraphHtml(design.email_builder_body)}
+        </div>
+        ${image}
+        <div style="padding:8px 30px 28px;background:${design.email_builder_canvas_color};">
+          <a href="{{rsvp_link}}" style="display:inline-block;border-radius:999px;background:${design.accent_color};color:${design.button_text_color};font-size:15px;font-weight:700;padding:12px 20px;text-decoration:none;">${escapeHtml(design.button_label)}</a>
+        </div>
+        ${attachment}
+        <div style="padding:18px 30px 28px;background:${design.email_builder_canvas_color};color:${design.muted_color};font-size:12px;line-height:1.5;">
+          ${paragraphHtml(design.footer)}
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+}
+
+export function bodyFromDesign(rawBody: string, design: EmailDesignData) {
+  return renderEmailBuilderDesignHtml(design) ?? rawBody;
+}
+
 type CampaignEmailPreview = NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>;
 
 function buildPreviewFromContact(
@@ -607,7 +686,7 @@ export function campaignRsvpSummary(recipients: CampaignRecipient[]): CampaignRs
 }
 
 export function renderCampaignEmailHtml(preview: NonNullable<Awaited<ReturnType<typeof getCampaignPreview>>>) {
-  if (preview.design.editor_mode === "visual") {
+  if (preview.design.editor_mode === "visual" || preview.design.editor_mode === "emailbuilder") {
     return preview.body;
   }
 
@@ -746,8 +825,8 @@ export async function createCampaign(formData: FormData) {
   const eventId = formValue(formData, "event_id");
   const name = formValue(formData, "name");
   const subject = formValue(formData, "subject");
-  const body = formValue(formData, "body");
   const designData = emailDesignDataFromForm(formData);
+  const body = bodyFromDesign(formValue(formData, "body"), designData);
 
   if (!eventId || !name || !subject || !body) {
     redirect("/campaigns/new?error=missing_fields");
@@ -824,8 +903,8 @@ async function saveCampaignDraft(campaignId: string, formData: FormData, redirec
 
   const subject = formValue(formData, "subject");
   const name = formValue(formData, "name");
-  const body = formValue(formData, "body");
   const designData = emailDesignDataFromForm(formData);
+  const body = bodyFromDesign(formValue(formData, "body"), designData);
 
   if (!name || !subject || !body) {
     redirect(`/campaigns/${campaignId}?error=missing_fields`);

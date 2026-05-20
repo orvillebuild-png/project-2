@@ -1,5 +1,5 @@
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
-import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
+import { EmailBuilderJsEditor } from "@/components/campaigns/EmailBuilderJsEditor";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -107,7 +107,7 @@ export default async function NewCampaignPage({
               />
             </label>
           </section>
-          <VisualEmailBuilder
+          <EmailBuilderJsEditor
             defaultValue={defaultBody}
             design={designDefaults}
             orgId={membership?.orgs?.id ?? ""}

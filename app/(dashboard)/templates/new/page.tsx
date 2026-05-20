@@ -1,5 +1,5 @@
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
-import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
+import { EmailBuilderJsEditor } from "@/components/campaigns/EmailBuilderJsEditor";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -72,7 +72,7 @@ export default async function NewTemplatePage({
             </label>
           </section>
 
-          <VisualEmailBuilder
+          <EmailBuilderJsEditor
             defaultValue={"Hi {{first_name}},\n\nYou are invited to {{event_title}} on {{event_date}} at {{venue}}.\n\nPlease RSVP here: {{rsvp_link}}\n\nThank you."}
             design={designDefaults}
             orgId={membership?.orgs?.id ?? ""}

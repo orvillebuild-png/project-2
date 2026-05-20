@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Mail, Send, XCircle } from "lucide-react";
 import { EmailStatusBadge } from "@/components/contacts/EmailStatusBadge";
 import { EmailTemplateControls } from "@/components/campaigns/EmailTemplateControls";
-import { VisualEmailBuilder } from "@/components/campaigns/VisualEmailBuilder";
+import { EmailBuilderJsEditor } from "@/components/campaigns/EmailBuilderJsEditor";
 import { CollapsibleRail } from "@/components/layout/CollapsibleRail";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -196,7 +196,7 @@ export default async function CampaignDetailPage({
                 </label>
               </section>
 
-              <VisualEmailBuilder
+              <EmailBuilderJsEditor
                 defaultValue={campaign.email_templates.html_body}
                 design={campaign.email_templates.design_data}
                 orgId={membership.orgs.id}

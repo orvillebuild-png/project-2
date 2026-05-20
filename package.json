@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
+    "@usewaypoint/email-builder": "^0.0.9",
     "clsx": "^2.1.1",
     "emoji-picker-react": "^4.19.1",
     "lucide-react": "^0.468.0",
@@ -20,7 +21,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-email-editor": "^1.8.0",
-    "tailwind-merge": "^2.5.5"
+    "tailwind-merge": "^2.5.5",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

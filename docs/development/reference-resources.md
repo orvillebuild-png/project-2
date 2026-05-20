@@ -16,12 +16,19 @@ These repositories are project references only. They are not application depende
 - Useful for: finding lower-friction APIs for address lookup, geocoding, enrichment, validation, and future integrations.
 - Project note: verify API reliability, pricing, country support, rate limits, and terms before building any production feature around a listed API.
 
+## EmailBuilderJS
+
+- URL: https://github.com/usewaypoint/email-builder-js
+- Use case: MIT-licensed open-source email template builder and renderer.
+- Useful for: self-hosted campaign/template email composition, JSON email documents, email-safe rendered HTML, image/button/text blocks, and matching preview/send output.
+- Project note: this is now the preferred campaign builder dependency. Store EmailBuilderJS JSON in `design_data.email_builder_document` and server-render final HTML with `renderToStaticMarkup`.
+
 ## Unlayer React Email Editor
 
 - URL: https://github.com/unlayer/react-email-editor
 - Use case: maintained drag-and-drop visual email editor for React.
-- Useful for: reusable campaign template design, image blocks, buttons, merge tags, email-safe exported HTML, and saved design JSON.
-- Project note: this is now an application dependency for the campaign builder. Store both exported HTML and Unlayer design JSON so drafts can be reopened visually.
+- Useful for: legacy campaign drafts that may still contain Unlayer design JSON.
+- Project note: parked as a legacy escape hatch. New campaign/template edits should use EmailBuilderJS instead.
 
 ## Atomic CRM
 

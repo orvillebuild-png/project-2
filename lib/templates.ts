@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentOrg } from "@/lib/auth";
 import { createClientForServer } from "@/lib/supabase";
-import { emailDesignDataFromForm, type EmailDesignData, normalizeEmailDesignData } from "@/lib/campaigns";
+import { bodyFromDesign, emailDesignDataFromForm, type EmailDesignData, normalizeEmailDesignData } from "@/lib/campaigns";
 
 export type EmailTemplateLibraryItem = {
   id: string;
@@ -81,9 +81,9 @@ export async function createLibraryTemplate(formData: FormData) {
   const { org, supabase } = await requireOrg();
   const name = formValue(formData, "name");
   const subject = formValue(formData, "subject");
-  const body = formValue(formData, "body");
   const description = formValue(formData, "description");
   const designData = emailDesignDataFromForm(formData);
+  const body = bodyFromDesign(formValue(formData, "body"), designData);
 
   if (!name || !subject || !body) {
     redirect("/templates/new?error=missing_fields");

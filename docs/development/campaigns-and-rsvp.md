@@ -12,7 +12,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Internal campaign name.
 - Email subject.
 - Email body.
-- Visual drag-and-drop email template builder powered by `react-email-editor`.
+- Self-hosted EmailBuilderJS composer for campaign and reusable template creation.
 - Reusable template library for saving and reusing campaign layouts.
 - New campaign flow can start from a reusable template while creating an editable campaign-specific copy.
 - Campaign studio UI with separate campaign brief, message, design direction, preview, and delivery console areas.
@@ -21,13 +21,13 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Authenticated email preview route that renders the same HTML used by Resend.
 - Full-size email preview screen.
 - Email-safe visual template controls:
-  - drag-and-drop rows and content blocks
-  - text, heading, button, divider, HTML, and image blocks
-  - font choices exposed inside the builder, including Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Source Sans 3, Merriweather, and Playfair Display
-  - built-in color, spacing, sizing, and mobile-responsive controls
+  - headline, markdown body, CTA, footer, image, and attachment controls
+  - EmailBuilderJS font presets: Modern Sans, Book Sans, Organic Sans, Geometric Sans, Heavy Sans, Rounded Sans, Modern Serif, Book Serif, and Monospace
+  - working color controls for header, accent, canvas, backdrop, text, and button text
+  - uploaded image insertion and width control
 - Shared visual builder for new drafts and later edits.
-- Builder exports both final HTML and design JSON when a campaign is saved, previewed, tested, or sent.
-- Builder image uploads are stored in Supabase Storage through a custom Unlayer image callback.
+- Builder stores EmailBuilderJS JSON and server-renders final HTML with the same renderer used for preview, test sends, and real sends.
+- Builder image uploads are stored in Supabase Storage and inserted as EmailBuilderJS image blocks.
 - File attachment upload remains available from the builder header and is sent through Resend as an email attachment.
 - Sender identity fields for from name and from email.
 - File attachment upload and attachment link rendering.
@@ -63,7 +63,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 1. User selects an event.
 2. Campaign uses the event's selected invitees as its recipient source.
 3. User enters campaign name and subject.
-4. User designs the email in the visual builder, including copy, layout, colors, fonts, buttons, merge fields, images, and links.
+4. User designs the email in the EmailBuilderJS composer, including copy, layout color, fonts, CTA, merge fields, image, and attachment.
 5. Campaign is saved as draft.
 6. User reviews the live recipient preview in the campaign studio.
 7. User generates RSVP links.
@@ -158,7 +158,7 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - The editor separates content authoring from operational sending controls.
 - Merge fields are always visible as chips while writing the message.
 - Preview opens from the message editor so the main campaign page stays focused on editing and delivery controls.
-- Side preview and full-size preview use an iframe pointed at the same HTML renderer used by Resend sends.
+- Full-size preview uses an iframe pointed at the same HTML renderer used by Resend sends.
 - Template controls intentionally use email-client-safe inline styles.
 - Image insertion uploads from the message toolbar and stores the public URL, alt text, and target width in template design JSON.
 - Image resizing is performed by dragging the handle on the previewed image itself.
@@ -200,8 +200,8 @@ Campaigns create invitation drafts for event invitees, prepare recipient-specifi
 - Test email sending is available only when Resend env vars are configured.
 - Real campaign sending is available only when Resend env vars are configured.
 - Resend webhook feedback is active only after a Resend webhook is created and `RESEND_WEBHOOK_SECRET` is configured in the deployment environment.
-- Unlayer loads from its hosted editor script, so the builder requires network access while editing.
-- Complex visual templates can produce larger Server Action payloads; the app raises the action body limit to support saved design JSON.
+- Legacy campaigns may still contain Unlayer `visual` design JSON and rendered HTML; new campaign/template edits use `emailbuilder` mode.
+- EmailBuilderJS is now the preferred composer. The prior Unlayer implementation is retained in code only as a legacy escape hatch until old visual drafts are migrated or discarded.
 - RSVP link is rendered as a CTA in preview and real sends.
 - Open tracking depends on email clients loading remote images; some clients block or proxy pixels.
 - Suppression management UI is available at `/contacts/suppressions`; suppressions are created by unsubscribe links, provider feedback, or manual admin action and respected during send.
